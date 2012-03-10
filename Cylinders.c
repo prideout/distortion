@@ -206,9 +206,9 @@ static Vector3 EvaluateCylinder(float s, float t)
 
 static MeshPod CreateCylinder()
 {
-    const int VertexCount = Slices * (Stacks+1);
-    const int FillIndexCount = Slices * Stacks * 6;
-    const int LineIndexCount = Slices * Stacks * 6;
+    const int VertexCount = (Slices+1) * (Stacks+1);
+    const int FillIndexCount = (Slices+1) * Stacks * 6;
+    const int LineIndexCount = 0;
 
     MeshPod mesh;
     glGenVertexArrays(1, &mesh.FillVao);
@@ -219,7 +219,7 @@ static MeshPod CreateCylinder()
         Vertex verts[VertexCount];
         Vertex* pVert = &verts[0];
         float ds = 1.0f / Stacks;
-        float dt = 1.0f / (Slices - 1);
+        float dt = 1.0f / Slices;
 
         // The upper bounds in these loops are tweaked to reduce the
         // chance of precision error causing an incorrect # of iterations.
@@ -247,16 +247,17 @@ static MeshPod CreateCylinder()
         GLushort* pIndex = &inds[0];
         GLushort n = 0;
         for (GLushort j = 0; j < Stacks; j++) {
-            for (GLushort i = 0; i < Slices; i++) {
-                *pIndex++ = (n + i + Slices);
-                *pIndex++ = n + (i + 1) % Slices;
+            int vps = Slices+1; // vertices per stack
+            for (GLushort i = 0; i < vps; i++) {
+                *pIndex++ = (n + i + vps);
+                *pIndex++ = n + (i + 1) % vps;
                 *pIndex++ = n + i;
                 
-                *pIndex++ = (n + (i + 1) % Slices + Slices);
-                *pIndex++ = (n + (i + 1) % Slices);
-                *pIndex++ = (n + i + Slices);
+                *pIndex++ = (n + (i + 1) % vps + vps);
+                *pIndex++ = (n + (i + 1) % vps);
+                *pIndex++ = (n + i + vps);
             }
-            n += Slices;
+            n += vps;
         }
 
         pezCheck(pIndex - &inds[0] == FillIndexCount, "Tessellation error.");
