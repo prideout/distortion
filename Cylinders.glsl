@@ -51,7 +51,8 @@ out vec4 FragColor;
 uniform vec3 LightPosition = vec3(0.5, 0.25, 1.0);
 uniform vec3 AmbientMaterial = vec3(0.2, 0.2, 0.2);
 uniform vec3 SpecularMaterial = vec3(0.5, 0.5, 0.5);
-uniform vec4 DiffuseMaterial = vec4(0.75, 0.75, 0.5, 0.5);
+uniform vec4 FrontMaterial = vec4(0.75, 0.75, 0.5, 0.5);
+uniform vec4 BackMaterial = vec4(0.75, 0.75, 0.5, 0.5);
 uniform float Shininess = 7;
 
 void main()
@@ -69,9 +70,10 @@ void main()
     float sf = max(0.0, dot(N, H));
     sf = pow(sf, Shininess);
 
-    vec3 lighting = AmbientMaterial + df * DiffuseMaterial.rgb;
+    vec3 diffuse = gl_FrontFacing ? FrontMaterial.rgb : BackMaterial.rgb;
+    vec3 lighting = AmbientMaterial + df * diffuse;
     if (gl_FrontFacing)
         lighting += sf * SpecularMaterial;
 
-    FragColor = vec4(lighting, DiffuseMaterial.a);
+    FragColor = vec4(lighting, FrontMaterial.a);
 }

@@ -124,13 +124,15 @@ void PezRender()
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
-    glUniform4f(u("DiffuseMaterial"), 0, 0, 1, 1);
+    glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
+    glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
     glDrawElements(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDepthMask(GL_FALSE);
     glUniform3f(u("SpecularMaterial"), 0, 0, 0);
-    glUniform4f(u("DiffuseMaterial"), 0, 0, 0, 1);
+    glUniform4f(u("FrontMaterial"), 0, 0, 0, 1);
+    glUniform4f(u("BackMaterial"), 0, 0, 0, 1);
     glDrawElements(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0);
     glDepthMask(GL_TRUE);
 }
