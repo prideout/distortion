@@ -19,6 +19,7 @@ typedef struct {
     Matrix4 Modelview;
     Matrix4 View;
     Matrix4 Model;
+    Matrix3 Normal;
 } TransformsPod;
 
 struct {
@@ -60,7 +61,7 @@ void PezInitialize()
     const PezConfig cfg = PezGetConfig();
 
     // Compile shaders
-    Globals.LitProgram = LoadProgram("Lit.VS", 0, "Lit.FS");
+    Globals.LitProgram = LoadProgram("Lit.VS", "Lit.GS", "Lit.FS");
 
     // Set up viewport
     float fovy = 16 * TwoPi / 180;
@@ -81,6 +82,9 @@ void PezInitialize()
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1,1);
 }
 
 void PezUpdate(float seconds)
@@ -90,6 +94,7 @@ void PezUpdate(float seconds)
     
     // Create the model-view matrix:
     Globals.Transforms.Model = M4MakeRotationY(Globals.Theta);
+    Globals.Transforms.Normal = M4GetUpper3x3(Globals.Transforms.Model);
     Point3 eye = {0, 0, 4};
     Point3 target = {0, 0, 0};
     Vector3 up = {0, 1, 0};
@@ -99,6 +104,7 @@ void PezUpdate(float seconds)
 
 void PezRender()
 {
+    float* pNormal = (float*) &Globals.Transforms.Normal;
     float* pModel = (float*) &Globals.Transforms.Model;
     float* pView = (float*) &Globals.Transforms.View;
     float* pModelview = (float*) &Globals.Transforms.Modelview;
@@ -109,13 +115,20 @@ void PezRender()
     glBindVertexArray(mesh->Vao);
     glUniformMatrix4fv(u("ViewMatrix"), 1, 0, pView);
     glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
+    glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
+
     glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
     glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glUniform3f(u("SpecularMaterial"), 0, 0, 0);
-    glUniform4f(u("DiffuseMaterial"), 0, 0, 0, 0.25);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
+    glUniform4f(u("DiffuseMaterial"), 0, 0, 1, 1);
+    glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
+
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glUniform3f(u("SpecularMaterial"), 0, 0, 0);
+    glUniform4f(u("DiffuseMaterial"), 0, 0, 0, 1);
     glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
 }
 
