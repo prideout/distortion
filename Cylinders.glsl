@@ -2,22 +2,18 @@
 -- Lit.VS
 
 in vec4 Position;
-in vec3 Normal;
 
 out vec3 vPosition;
-out vec3 vNormal;
 
 uniform mat4 Projection;
 uniform mat4 Modelview;
 uniform mat4 ViewMatrix;
 uniform mat4 ModelMatrix;
-uniform mat3 NormalMatrix;
 
 void main()
 {
     vPosition = Position.xyz;
     gl_Position = Projection * Modelview * Position;
-    vNormal = NormalMatrix * Normal;
 }
 
 -- Lit.FS

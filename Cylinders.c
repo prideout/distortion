@@ -19,30 +19,30 @@ typedef struct {
     Matrix4 Modelview;
     Matrix4 View;
     Matrix4 Model;
-    Matrix3 Normal;
-    GLfloat PackedNormal[9];
 } TransformsPod;
 
 struct {
     float Theta;
     GLuint LitProgram;
     GLuint SinglePointVao;
-    MeshPod TrefoilKnot;
+    MeshPod CylinderKnot;
     TransformsPod Transforms;
 } Globals;
 
 typedef struct {
     Vector3 Position;
-    Vector3 Normal;
 } Vertex;
 
 static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKey);
 static GLuint CurrentProgram();
-static MeshPod CreateTrefoil();
+static MeshPod CreateCylinder();
 
 #define u(x) glGetUniformLocation(CurrentProgram(), x)
 #define a(x) glGetAttribLocation(CurrentProgram(), x)
 #define offset(x) ((const GLvoid*)x)
+
+const int Slices = 32;
+const int Stacks = 16;
 
 PezConfig PezGetConfig()
 {
@@ -71,7 +71,7 @@ void PezInitialize()
 
     // Create geometry
     glUseProgram(Globals.LitProgram);
-    Globals.TrefoilKnot = CreateTrefoil();
+    Globals.CylinderKnot = CreateCylinder();
 
     // Misc Initialization
     Globals.Theta = 0;
@@ -95,9 +95,6 @@ void PezUpdate(float seconds)
     Vector3 up = {0, 1, 0};
     Globals.Transforms.View = M4MakeLookAt(eye, target, up);
     Globals.Transforms.Modelview = M4Mul(Globals.Transforms.View, Globals.Transforms.Model);
-    Globals.Transforms.Normal = M4GetUpper3x3(Globals.Transforms.Modelview);
-    for (int i = 0; i < 9; i++)
-        Globals.Transforms.PackedNormal[i] = M3GetElem(Globals.Transforms.Normal, i/3, i%3);
 }
 
 void PezRender()
@@ -106,8 +103,7 @@ void PezRender()
     float* pView = (float*) &Globals.Transforms.View;
     float* pModelview = (float*) &Globals.Transforms.Modelview;
     float* pProjection = (float*) &Globals.Transforms.Projection;
-    float* pNormalMatrix = &Globals.Transforms.PackedNormal[0];
-    MeshPod* mesh = &Globals.TrefoilKnot;
+    MeshPod* mesh = &Globals.CylinderKnot;
 
     glUseProgram(Globals.LitProgram);
     glBindVertexArray(mesh->Vao);
@@ -115,13 +111,12 @@ void PezRender()
     glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
     glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
     glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
-    glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormalMatrix);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glUniform3f(u("SpecularMaterial"), 0, 0, 0);
     glUniform4f(u("DiffuseMaterial"), 0, 0, 0, 0.25);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, mesh->IndexCount - Slices*6, GL_UNSIGNED_SHORT, 0);
 }
 
 void PezHandleMouse(int x, int y, int action)
@@ -182,39 +177,17 @@ static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKe
     return programHandle;
 }
 
-static Vector3 EvaluateTrefoil(float s, float t)
+static Vector3 EvaluateCylinder(float s, float t)
 {
-    const float a = 0.5f;
-    const float b = 0.3f;
-    const float c = 0.5f;
-    const float d = 0.1f;
-    const float u = (1 - s) * 2 * TwoPi;
-    const float v = t * TwoPi;
-    const float r = a + b * cos(1.5f * u);
-    const float x = r * cos(u);
-    const float y = r * sin(u);
-    const float z = c * sin(1.5f * u);
-
-    Vector3 dv;
-    dv.x = -1.5f * b * sin(1.5f * u) * cos(u) - (a + b * cos(1.5f * u)) * sin(u);
-    dv.y = -1.5f * b * sin(1.5f * u) * sin(u) + (a + b * cos(1.5f * u)) * cos(u);
-    dv.z = 1.5f * c * cos(1.5f * u);
-
-    Vector3 q = V3Normalize(dv);
-    Vector3 qvn = V3Normalize((Vector3){q.y, -q.x, 0});
-    Vector3 ww = V3Cross(q, qvn);
-        
     Vector3 range;
-    range.x = x + d * (qvn.x * cos(v) + ww.x * sin(v));
-    range.y = y + d * (qvn.y * cos(v) + ww.y * sin(v));
-    range.z = z + d * ww.z * sin(v);
+    range.x = 0.5 * cos(t * TwoPi);
+    range.y = s - 0.5;
+    range.z = 0.5 * sin(t * TwoPi);
     return range;
 }
 
-static MeshPod CreateTrefoil()
+static MeshPod CreateCylinder()
 {
-    const int Slices = 64;
-    const int Stacks = 16;
     const int VertexCount = Slices * Stacks;
     const int IndexCount = VertexCount * 6;
 
@@ -222,24 +195,18 @@ static MeshPod CreateTrefoil()
     glGenVertexArrays(1, &mesh.Vao);
     glBindVertexArray(mesh.Vao);
 
-    // Create a buffer with interleaved positions and normals
+    // Create a buffer with positions
     if (1) {
         Vertex verts[VertexCount];
         Vertex* pVert = &verts[0];
-        float ds = 1.0f / Slices;
-        float dt = 1.0f / Stacks;
+        float ds = 1.0f / (Stacks - 1);
+        float dt = 1.0f / (Slices - 1);
 
         // The upper bounds in these loops are tweaked to reduce the
         // chance of precision error causing an incorrect # of iterations.
-        for (float s = 0; s < 1 - ds / 2; s += ds) {
-            for (float t = 0; t < 1 - dt / 2; t += dt) {
-                const float E = 0.01f;
-                Vector3 p = EvaluateTrefoil(s, t);
-                Vector3 u = V3Sub(EvaluateTrefoil(s + E, t), p);
-                Vector3 v = V3Sub(EvaluateTrefoil(s, t + E), p);
-                Vector3 n = V3Normalize(V3Cross(u, v));
-                pVert->Position = p;
-                pVert->Normal = n;
+        for (float s = 0; s < 1 + ds / 2; s += ds) {
+            for (float t = 0; t < 1 + dt / 2; t += dt) {
+                pVert->Position = EvaluateCylinder(s, t);
                 ++pVert;
             }
         }
@@ -260,20 +227,20 @@ static MeshPod CreateTrefoil()
         GLushort inds[IndexCount];
         GLushort* pIndex = &inds[0];
         GLushort n = 0;
-        for (GLushort i = 0; i < Slices; i++) {
-            for (GLushort j = 0; j < Stacks; j++) {
-                *pIndex++ = (n + j + Stacks) % VertexCount;
-                *pIndex++ = n + (j + 1) % Stacks;
-                *pIndex++ = n + j;
+        for (GLushort j = 0; j < Stacks; j++) {
+            for (GLushort i = 0; i < Slices; i++) {
+                *pIndex++ = (n + i + Slices) % VertexCount;
+                *pIndex++ = n + (i + 1) % Slices;
+                *pIndex++ = n + i;
                 
-                *pIndex++ = (n + (j + 1) % Stacks + Stacks) % VertexCount;
-                *pIndex++ = (n + (j + 1) % Stacks) % VertexCount;
-                *pIndex++ = (n + j + Stacks) % VertexCount;
+                *pIndex++ = (n + (i + 1) % Slices + Slices) % VertexCount;
+                *pIndex++ = (n + (i + 1) % Slices) % VertexCount;
+                *pIndex++ = (n + i + Slices) % VertexCount;
             }
-            n += Stacks;
+            n += Slices;
         }
 
-        pezCheck(n == VertexCount, "Tessellation error.");
+        pezCheck(n == VertexCount, "Tessellation error: %d vs %d.", n, VertexCount);
         pezCheck(pIndex - &inds[0] == IndexCount, "Tessellation error.");
 
         GLuint handle;
@@ -288,10 +255,8 @@ static MeshPod CreateTrefoil()
     mesh.VertexCount = VertexCount;
     mesh.IndexCount = IndexCount;
 
-    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 24, 0);
-    glVertexAttribPointer(a("Normal"), 3, GL_FLOAT, GL_FALSE, 24, offset(12));
+    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 12, 0);
     glEnableVertexAttribArray(a("Position"));
-    glEnableVertexAttribArray(a("Normal"));
 
     return mesh;
 }
