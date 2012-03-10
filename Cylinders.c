@@ -229,13 +229,13 @@ static MeshPod CreateCylinder()
         GLushort n = 0;
         for (GLushort j = 0; j < Stacks; j++) {
             for (GLushort i = 0; i < Slices; i++) {
-                *pIndex++ = (n + i + Slices);// % VertexCount;
+                *pIndex++ = (n + i + Slices);
                 *pIndex++ = n + (i + 1) % Slices;
                 *pIndex++ = n + i;
                 
-                *pIndex++ = (n + (i + 1) % Slices + Slices);// % VertexCount;
-                *pIndex++ = (n + (i + 1) % Slices);// % VertexCount;
-                *pIndex++ = (n + i + Slices);// % VertexCount;
+                *pIndex++ = (n + (i + 1) % Slices + Slices);
+                *pIndex++ = (n + (i + 1) % Slices);
+                *pIndex++ = (n + i + Slices);
             }
             n += Slices;
         }
