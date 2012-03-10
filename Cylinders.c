@@ -17,11 +17,9 @@ typedef struct {
 
 typedef struct {
     Matrix4 Projection;
-    Matrix4 Ortho;
     Matrix4 Modelview;
     Matrix4 View;
     Matrix4 Model;
-    Matrix3 Normal;
 } TransformsPod;
 
 struct {
@@ -30,7 +28,6 @@ struct {
     GLuint SimpleProgram;
     MeshPod Cylinder;
     TransformsPod Transforms;
-    Point3 LightPosition;
 } Globals;
 
 typedef struct {
@@ -72,7 +69,6 @@ void PezInitialize()
     float aspect = (float) cfg.Width / cfg.Height;
     float zNear = 0.1, zFar = 300;
     Globals.Transforms.Projection = M4MakePerspective(fovy, aspect, zNear, zFar);
-    Globals.Transforms.Ortho = M4MakeOrthographic(0, cfg.Width, cfg.Height, 0, 0, 1);
 
     // Create geometry
     Globals.Cylinder = CreateCylinder();
@@ -97,16 +93,11 @@ void PezUpdate(float seconds)
     
     // Create the model-view matrix:
     Globals.Transforms.Model = M4MakeRotationY(Globals.Theta);
-    Globals.Transforms.Normal = M4GetUpper3x3(Globals.Transforms.Model);
     Point3 eye = {0, 1, 4};
     Point3 target = {0, 0, 0};
     Vector3 up = {0, 1, 0};
     Globals.Transforms.View = M4MakeLookAt(eye, target, up);
     Globals.Transforms.Modelview = M4Mul(Globals.Transforms.View, Globals.Transforms.Model);
-
-    Vector3 v = V3Normalize((Vector3){0.5, 0.25, 1.0});
-    v = M3MulV3(M3Inverse(Globals.Transforms.Normal), v);
-    Globals.LightPosition = P3MakeFromV3(v);
 }
 
 void PezRender()
@@ -114,16 +105,18 @@ void PezRender()
     Matrix4 mvp = M4Mul(Globals.Transforms.Projection, Globals.Transforms.Modelview);
     float* pMVP = (float*) (&mvp);
 
-    float* pNormal = (float*) &Globals.Transforms.Normal;
     float* pModelview = (float*) &Globals.Transforms.Modelview;
     float* pProjection = (float*) &Globals.Transforms.Projection;
     MeshPod* mesh = &Globals.Cylinder;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    Vector3 LightPosition = {0.5, 0.25, 1.0};
-    Vector3 Lhat = V3Normalize(LightPosition);
-    Vector3 Eye = {0, 0, 1};
+    Vector3 LightPosition = {0.5, 0.25, 1.0}; // world space
+    Vector3 EyePosition = {0, 0, 1}; // world space
+
+    Matrix3 m = M3Transpose(M4GetUpper3x3(Globals.Transforms.Model));
+    Vector3 Lhat = M3MulV3(m, V3Normalize(LightPosition)); // object space
+    Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition)); // object space
     Vector3 Hhat = V3Normalize(V3Add(Lhat, Eye));
     
     glUseProgram(Globals.LitProgram);
@@ -132,7 +125,6 @@ void PezRender()
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
     glUniform3fv(u("Hhat"), 1, &Hhat.x);
     glUniform3fv(u("Lhat"), 1, &Lhat.x);
-    glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
     glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
     glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
 

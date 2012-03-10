@@ -44,13 +44,11 @@ in vec3 vPosition[3];
 out vec3 gNormal;
 out float gDistance[4];
 
-uniform mat3 NormalMatrix;
-
 void main()
 {
     vec3 A = vPosition[2] - vPosition[0];
     vec3 B = vPosition[1] - vPosition[0];
-    gNormal = NormalMatrix * normalize(cross(A, B));
+    gNormal = normalize(cross(A, B));
 
     for (int j = 0; j < 3; j++) {
         gl_Position = gl_in[j].gl_Position;
@@ -65,7 +63,6 @@ in vec3 gNormal;
 
 out vec4 FragColor;
 
-uniform vec3 LightPosition = vec3(0.5, 0.25, 1.0);
 uniform vec3 AmbientMaterial = vec3(0.2, 0.2, 0.2);
 uniform vec3 SpecularMaterial = vec3(0.5, 0.5, 0.5);
 uniform vec4 FrontMaterial = vec4(0.75, 0.75, 0.5, 0.5);
