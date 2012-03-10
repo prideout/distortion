@@ -42,7 +42,7 @@ static MeshPod CreateCylinder();
 #define offset(x) ((const GLvoid*)x)
 
 const int Slices = 32;
-const int Stacks = 16;
+const int Stacks = 3;
 
 PezConfig PezGetConfig()
 {
@@ -116,7 +116,7 @@ void PezRender()
     glUniform3f(u("SpecularMaterial"), 0, 0, 0);
     glUniform4f(u("DiffuseMaterial"), 0, 0, 0, 0.25);
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDrawElements(GL_TRIANGLES, mesh->IndexCount - Slices*6, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
 }
 
 void PezHandleMouse(int x, int y, int action)
@@ -188,8 +188,8 @@ static Vector3 EvaluateCylinder(float s, float t)
 
 static MeshPod CreateCylinder()
 {
-    const int VertexCount = Slices * Stacks;
-    const int IndexCount = VertexCount * 6;
+    const int VertexCount = Slices * (Stacks+1);
+    const int IndexCount = Slices * Stacks * 6;
 
     MeshPod mesh;
     glGenVertexArrays(1, &mesh.Vao);
@@ -199,7 +199,7 @@ static MeshPod CreateCylinder()
     if (1) {
         Vertex verts[VertexCount];
         Vertex* pVert = &verts[0];
-        float ds = 1.0f / (Stacks - 1);
+        float ds = 1.0f / Stacks;
         float dt = 1.0f / (Slices - 1);
 
         // The upper bounds in these loops are tweaked to reduce the
@@ -229,18 +229,17 @@ static MeshPod CreateCylinder()
         GLushort n = 0;
         for (GLushort j = 0; j < Stacks; j++) {
             for (GLushort i = 0; i < Slices; i++) {
-                *pIndex++ = (n + i + Slices) % VertexCount;
+                *pIndex++ = (n + i + Slices);// % VertexCount;
                 *pIndex++ = n + (i + 1) % Slices;
                 *pIndex++ = n + i;
                 
-                *pIndex++ = (n + (i + 1) % Slices + Slices) % VertexCount;
-                *pIndex++ = (n + (i + 1) % Slices) % VertexCount;
-                *pIndex++ = (n + i + Slices) % VertexCount;
+                *pIndex++ = (n + (i + 1) % Slices + Slices);// % VertexCount;
+                *pIndex++ = (n + (i + 1) % Slices);// % VertexCount;
+                *pIndex++ = (n + i + Slices);// % VertexCount;
             }
             n += Slices;
         }
 
-        pezCheck(n == VertexCount, "Tessellation error: %d vs %d.", n, VertexCount);
         pezCheck(pIndex - &inds[0] == IndexCount, "Tessellation error.");
 
         GLuint handle;
