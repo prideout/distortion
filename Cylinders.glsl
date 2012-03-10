@@ -1,21 +1,21 @@
 -- Simple.VS
 
 in vec4 Position;
-uniform mat4 Projection;
-uniform mat4 Modelview;
+uniform mat4 ModelviewProjection;
+
 void main()
 {
-    gl_Position = Projection * Modelview * Position;
+    gl_Position = ModelviewProjection * Position;
 }
 
 
 -- Simple.FS
 
 out vec4 FragColor;
-uniform vec4 FrontMaterial = vec4(0.75, 0.75, 0.5, 0.5);
+uniform vec4 Color;
 void main()
 {
-    FragColor = FrontMaterial;
+    FragColor = Color;
 }
 
 -- Lit.VS
@@ -26,8 +26,6 @@ out vec3 vPosition;
 
 uniform mat4 Projection;
 uniform mat4 Modelview;
-uniform mat4 ViewMatrix;
-uniform mat4 ModelMatrix;
 
 void main()
 {

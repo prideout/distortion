@@ -30,6 +30,7 @@ struct {
     GLuint SimpleProgram;
     MeshPod Cylinder;
     TransformsPod Transforms;
+    Point3 LightPosition;
 } Globals;
 
 typedef struct {
@@ -102,13 +103,18 @@ void PezUpdate(float seconds)
     Vector3 up = {0, 1, 0};
     Globals.Transforms.View = M4MakeLookAt(eye, target, up);
     Globals.Transforms.Modelview = M4Mul(Globals.Transforms.View, Globals.Transforms.Model);
+
+    Vector3 v = V3Normalize((Vector3){0.5, 0.25, 1.0});
+    v = M3MulV3(M3Inverse(Globals.Transforms.Normal), v);
+    Globals.LightPosition = P3MakeFromV3(v);
 }
 
 void PezRender()
 {
+    Matrix4 mvp = M4Mul(Globals.Transforms.Projection, Globals.Transforms.Modelview);
+    float* pMVP = (float*) (&mvp);
+
     float* pNormal = (float*) &Globals.Transforms.Normal;
-    float* pModel = (float*) &Globals.Transforms.Model;
-    float* pView = (float*) &Globals.Transforms.View;
     float* pModelview = (float*) &Globals.Transforms.Modelview;
     float* pProjection = (float*) &Globals.Transforms.Projection;
     MeshPod* mesh = &Globals.Cylinder;
@@ -119,26 +125,23 @@ void PezRender()
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
-    glUniformMatrix4fv(u("ViewMatrix"), 1, 0, pView);
-    glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
+    //glUniform3fv(u("LightPosition"), 1, (float*) &Globals.LightPosition);;
     glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
     glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
     glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
+
+    int instanceCount = 1;
 
     glBindVertexArray(mesh->FillVao);
-    glDrawElements(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0);
+    glDrawElementsInstanced(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
 
     glUseProgram(Globals.SimpleProgram);
-    glUniform4f(u("FrontMaterial"), 0, 0, 0, 1);
-    glUniformMatrix4fv(u("ViewMatrix"), 1, 0, pView);
-    glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
-    glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
-    glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
-    glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
+    glUniform4f(u("Color"), 0, 0, 0, 1);
+    glUniformMatrix4fv(u("ModelviewProjection"), 1, 0, pMVP);
 
     glDepthMask(GL_FALSE);
     glBindVertexArray(mesh->LineVao);
-    glDrawElements(GL_LINES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0);
+    glDrawElementsInstanced(GL_LINES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
     glDepthMask(GL_TRUE);
 }
 
