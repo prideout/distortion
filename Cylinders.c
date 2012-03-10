@@ -92,15 +92,28 @@ void PezUpdate(float seconds)
 
 void PezRender()
 {
-    Matrix4 Model = M4MakeRotationY(Globals.Theta);
-    Matrix4 Modelview = M4Mul(Globals.View, Model);
-    Matrix4 mvp = M4Mul(Globals.Projection, Modelview);
+    Matrix4 Model[6];
+    Model[0] = M4MakeRotationY(Globals.Theta);
+    Model[1] = M4MakeRotationY(Globals.Theta);
+    Model[2] = M4MakeRotationY(Globals.Theta);
+    Model[3] = M4MakeRotationY(Globals.Theta);
+    Model[4] = M4MakeRotationY(Globals.Theta);
+    Model[5] = M4MakeRotationY(Globals.Theta);
+
     Vector3 LightPosition = {0.5, 0.25, 1.0}; // world space
     Vector3 EyePosition = {0, 0, 1};          // world space
-    Matrix3 m = M3Transpose(M4GetUpper3x3(Model));
-    Vector3 Lhat = M3MulV3(m, V3Normalize(LightPosition)); // object space
-    Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition));   // object space
-    Vector3 Hhat = V3Normalize(V3Add(Lhat, Eye));
+
+    Matrix4 MVP[6];
+    Vector3 Lhat[6];
+    Vector3 Hhat[6];
+    for (int i = 0; i < 6; i++) {
+        Matrix4 mv = M4Mul(Globals.View, Model[i]);
+        MVP[i] = M4Mul(Globals.Projection, mv);
+        Matrix3 m = M3Transpose(M4GetUpper3x3(Model[i]));
+        Lhat[i] = M3MulV3(m, V3Normalize(LightPosition)); // object space
+        Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition));   // object space
+        Hhat[i] = V3Normalize(V3Add(Lhat[i], Eye));
+    }
 
     int instanceCount = 1;
     MeshPod* mesh = &Globals.Cylinder;
@@ -111,16 +124,16 @@ void PezRender()
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
-    glUniform3fv(u("Hhat"), 1, &Hhat.x);
-    glUniform3fv(u("Lhat"), 1, &Lhat.x);
-    glUniformMatrix4fv(u("ModelviewProjection"), 1, 0, (float*) &mvp);
+    glUniform3fv(u("Hhat"), 1, &Hhat[0].x);
+    glUniform3fv(u("Lhat"), 1, &Lhat[0].x);
+    glUniformMatrix4fv(u("ModelviewProjection"), 6, 0, (float*) &MVP[0]);
 
     glBindVertexArray(mesh->FillVao);
     glDrawElementsInstanced(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
 
     glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("Color"), 0, 0, 0, 1);
-    glUniformMatrix4fv(u("ModelviewProjection"), 1, 0, (float*) &mvp);
+    glUniformMatrix4fv(u("ModelviewProjection"), 6, 0, (float*) &MVP[0]);
 
     glDepthMask(GL_FALSE);
     glBindVertexArray(mesh->LineVao);
