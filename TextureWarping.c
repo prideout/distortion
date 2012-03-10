@@ -90,7 +90,6 @@ void PezInitialize()
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_DEPTH_TEST);
     glEnable(GL_POLYGON_OFFSET_FILL);
     glPolygonOffset(1,1);
 }
@@ -147,7 +146,10 @@ void PezRender()
     int instanceCount = Instances;
     MeshPod* mesh = &Globals.Cylinder;
 
+    glBindFramebuffer(GL_FRAMEBUFFER, Globals.FboHandle);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
   
     glUseProgram(Globals.LitProgram);
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
@@ -168,6 +170,14 @@ void PezRender()
     glBindVertexArray(mesh->LineVao);
     glDrawElementsInstanced(GL_LINES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
     glDepthMask(GL_TRUE);
+
+    glDisable(GL_DEPTH_TEST);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glUseProgram(Globals.QuadProgram);
+    glBindVertexArray(Globals.QuadVao);
+    glBindTexture(GL_TEXTURE_2D, Globals.FboTexture);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void PezHandleMouse(int x, int y, int action)

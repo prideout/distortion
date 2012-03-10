@@ -15,11 +15,10 @@ void main()
 in vec2 vTexCoord;
 layout(location = 0) out vec4 FragColor;
 uniform sampler2D Sampler;
-uniform vec3 Scale;
 
 void main()
 {
-    FragColor = vec4(Scale, 1) * texture(Sampler, vTexCoord);
+    FragColor = texture(Sampler, vTexCoord);
 }
 
 -- Simple.VS
