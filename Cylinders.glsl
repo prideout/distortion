@@ -1,7 +1,7 @@
 -- Simple.VS
 
 in vec4 Position;
-uniform mat4 ModelviewProjection[6];
+uniform mat4 ModelviewProjection[7];
 
 void main()
 {
@@ -22,10 +22,12 @@ void main()
 
 in vec4 Position;
 out vec3 vPosition;
-uniform mat4 ModelviewProjection[6];
+out int vInstanceID;
+uniform mat4 ModelviewProjection[7];
 
 void main()
 {
+    vInstanceID = gl_InstanceID;
     vPosition = Position.xyz;
     gl_Position = ModelviewProjection[gl_InstanceID] * Position;
 }
@@ -37,10 +39,13 @@ layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 in vec3 vPosition[3];
 out vec3 gNormal;
+in int vInstanceID[3];
 out float gDistance[4];
+flat out int gInstanceID;
 
 void main()
 {
+    gInstanceID = vInstanceID[0];
     vec3 A = vPosition[2] - vPosition[0];
     vec3 B = vPosition[1] - vPosition[0];
     gNormal = normalize(cross(A, B));
@@ -55,14 +60,15 @@ void main()
 -- Lit.FS
 
 in vec3 gNormal;
+flat in int gInstanceID;
 out vec4 FragColor;
 uniform vec3 AmbientMaterial = vec3(0.2, 0.2, 0.2);
 uniform vec3 SpecularMaterial = vec3(0.5, 0.5, 0.5);
 uniform vec4 FrontMaterial = vec4(0.75, 0.75, 0.5, 0.5);
 uniform vec4 BackMaterial = vec4(0.75, 0.75, 0.5, 0.5);
 uniform float Shininess = 7;
-uniform vec3 Hhat;
-uniform vec3 Lhat;
+uniform vec3 Hhat[7];
+uniform vec3 Lhat[7];
 
 void main()
 {
@@ -70,8 +76,8 @@ void main()
     if (!gl_FrontFacing)
        N = -N;
 
-    float df = max(0.0, dot(N, Lhat));
-    float sf = max(0.0, dot(N, Hhat));
+    float df = max(0.0, dot(N, Lhat[gInstanceID]));
+    float sf = max(0.0, dot(N, Hhat[gInstanceID]));
     sf = pow(sf, Shininess);
 
     vec3 diffuse = gl_FrontFacing ? FrontMaterial.rgb : BackMaterial.rgb;

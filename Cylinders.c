@@ -88,34 +88,52 @@ void PezUpdate(float seconds)
 {
     const float RadiansPerSecond = 0.5f;
     Globals.Theta += seconds * RadiansPerSecond;
+    ///Globals.Theta = Pi / 4;
 }
 
 void PezRender()
 {
-    Matrix4 Model[6];
+    #define Instances 7
+
+    Matrix4 Model[Instances];
     Model[0] = M4MakeRotationY(Globals.Theta);
-    Model[1] = M4MakeRotationY(Globals.Theta);
-    Model[2] = M4MakeRotationY(Globals.Theta);
-    Model[3] = M4MakeRotationY(Globals.Theta);
-    Model[4] = M4MakeRotationY(Globals.Theta);
-    Model[5] = M4MakeRotationY(Globals.Theta);
+    Model[1] = M4Mul(M4Mul(
+                     M4MakeTranslation((Vector3){0, 0, 0.6}),
+                     M4MakeScale(V3MakeFromScalar(0.25))),
+                     M4MakeRotationX(Pi/2)
+    );
+    Model[2] = Model[3] = Model[4] = Model[1];
+    Model[1] = M4Mul(M4MakeRotationY(Globals.Theta), Model[1]);
+    Model[2] = M4Mul(M4MakeRotationY(Globals.Theta + Pi/2), Model[2]);
+    Model[3] = M4Mul(M4MakeRotationY(Globals.Theta - Pi/2), Model[3]);
+    Model[4] = M4Mul(M4MakeRotationY(Globals.Theta + Pi), Model[4]);
+    Model[5] = M4Mul(M4Mul(
+                     M4MakeScale(V3MakeFromScalar(0.5)),
+                     M4MakeTranslation((Vector3){0, 1.25, 0})),
+                     M4MakeRotationY(-Globals.Theta)
+    );
+    Model[6] = M4Mul(M4Mul(
+                     M4MakeScale(V3MakeFromScalar(0.5)),
+                     M4MakeTranslation((Vector3){0, -1.25, 0})),
+                     M4MakeRotationY(-Globals.Theta)
+    );
 
     Vector3 LightPosition = {0.5, 0.25, 1.0}; // world space
     Vector3 EyePosition = {0, 0, 1};          // world space
 
-    Matrix4 MVP[6];
-    Vector3 Lhat[6];
-    Vector3 Hhat[6];
-    for (int i = 0; i < 6; i++) {
+    Matrix4 MVP[Instances];
+    Vector3 Lhat[Instances];
+    Vector3 Hhat[Instances];
+    for (int i = 0; i < Instances; i++) {
         Matrix4 mv = M4Mul(Globals.View, Model[i]);
         MVP[i] = M4Mul(Globals.Projection, mv);
         Matrix3 m = M3Transpose(M4GetUpper3x3(Model[i]));
-        Lhat[i] = M3MulV3(m, V3Normalize(LightPosition)); // object space
-        Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition));   // object space
+        Lhat[i] = M3MulV3(m, V3Normalize(LightPosition));    // object space
+        Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition)); // object space
         Hhat[i] = V3Normalize(V3Add(Lhat[i], Eye));
     }
 
-    int instanceCount = 1;
+    int instanceCount = Instances;
     MeshPod* mesh = &Globals.Cylinder;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -124,16 +142,16 @@ void PezRender()
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
-    glUniform3fv(u("Hhat"), 1, &Hhat[0].x);
-    glUniform3fv(u("Lhat"), 1, &Lhat[0].x);
-    glUniformMatrix4fv(u("ModelviewProjection"), 6, 0, (float*) &MVP[0]);
+    glUniform3fv(u("Hhat"), Instances, &Hhat[0].x);
+    glUniform3fv(u("Lhat"), Instances, &Lhat[0].x);
+    glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glBindVertexArray(mesh->FillVao);
     glDrawElementsInstanced(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
 
     glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("Color"), 0, 0, 0, 1);
-    glUniformMatrix4fv(u("ModelviewProjection"), 6, 0, (float*) &MVP[0]);
+    glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glDepthMask(GL_FALSE);
     glBindVertexArray(mesh->LineVao);
@@ -202,8 +220,9 @@ static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKe
 static Vector3 EvaluateCylinder(float s, float t)
 {
     Vector3 range;
+    const float h = 1.0;
     range.x = 0.5 * cos(t * TwoPi);
-    range.y = s - 0.5;
+    range.y = h * (s - 0.5);
     range.z = 0.5 * sin(t * TwoPi);
     return range;
 }
