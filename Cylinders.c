@@ -27,6 +27,7 @@ typedef struct {
 struct {
     float Theta;
     GLuint LitProgram;
+    GLuint SimpleProgram;
     MeshPod Cylinder;
     TransformsPod Transforms;
 } Globals;
@@ -43,7 +44,7 @@ static MeshPod CreateCylinder();
 #define a(x) glGetAttribLocation(CurrentProgram(), x)
 #define offset(x) ((const GLvoid*)x)
 
-const int Slices = 4;
+const int Slices = 8;
 const int Stacks = 3;
 
 PezConfig PezGetConfig()
@@ -62,6 +63,7 @@ void PezInitialize()
     const PezConfig cfg = PezGetConfig();
 
     // Compile shaders
+    Globals.SimpleProgram = LoadProgram("Simple.VS", 0, "Simple.FS");
     Globals.LitProgram = LoadProgram("Lit.VS", "Lit.GS", "Lit.FS");
 
     // Set up viewport
@@ -72,7 +74,6 @@ void PezInitialize()
     Globals.Transforms.Ortho = M4MakeOrthographic(0, cfg.Width, cfg.Height, 0, 0, 1);
 
     // Create geometry
-    glUseProgram(Globals.LitProgram);
     Globals.Cylinder = CreateCylinder();
 
     // Misc Initialization
@@ -112,28 +113,32 @@ void PezRender()
     float* pProjection = (float*) &Globals.Transforms.Projection;
     MeshPod* mesh = &Globals.Cylinder;
 
-    glUseProgram(Globals.LitProgram);
-    glBindVertexArray(mesh->FillVao);
-    glUniformMatrix4fv(u("ViewMatrix"), 1, 0, pView);
-    glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
-    glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
-
-    glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
-    glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glUseProgram(Globals.LitProgram);
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
+    glUniformMatrix4fv(u("ViewMatrix"), 1, 0, pView);
+    glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
+    glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
+    glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
+    glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
+
+    glBindVertexArray(mesh->FillVao);
     glDrawElements(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    glDepthMask(GL_FALSE);
-    glUniform3f(u("SpecularMaterial"), 0, 0, 0);
+    glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("FrontMaterial"), 0, 0, 0, 1);
-    glUniform4f(u("BackMaterial"), 0, 0, 0, 1);
-    glDrawElements(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0);
+    glUniformMatrix4fv(u("ViewMatrix"), 1, 0, pView);
+    glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
+    glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
+    glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
+    glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
+
+    glDepthMask(GL_FALSE);
+    glBindVertexArray(mesh->LineVao);
+    glDrawElements(GL_LINES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0);
     glDepthMask(GL_TRUE);
 }
 
@@ -208,13 +213,17 @@ static MeshPod CreateCylinder()
 {
     const int VertexCount = (Slices+1) * (Stacks+1);
     const int FillIndexCount = (Slices+1) * Stacks * 6;
-    const int LineIndexCount = 0;
 
+    const int circles = (Stacks+1)*Slices;
+    const int longitudinal = Stacks*Slices;
+    const int LineIndexCount = 2 * (circles + longitudinal);
+ 
     MeshPod mesh;
     glGenVertexArrays(1, &mesh.FillVao);
     glBindVertexArray(mesh.FillVao);
 
     // Create a buffer with positions
+    GLuint positionsVbo;
     if (1) {
         Vertex verts[VertexCount];
         Vertex* pVert = &verts[0];
@@ -232,16 +241,16 @@ static MeshPod CreateCylinder()
 
         pezCheck(pVert - &verts[0] == VertexCount, "Tessellation error.");
 
-        GLuint vbo;
         GLsizeiptr size = sizeof(verts);
         const GLvoid* data = &verts[0].Position.x;
         GLenum usage = GL_STATIC_DRAW;
-        glGenBuffers(1, &vbo);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glGenBuffers(1, &positionsVbo);
+        glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
         glBufferData(GL_ARRAY_BUFFER, size, data, usage);
     }
 
-    // Create a buffer of 16-bit indices
+    // Create a buffer of 16-bit triangle indices
+    GLuint trianglesVbo;
     if (1) {
         GLushort inds[FillIndexCount];
         GLushort* pIndex = &inds[0];
@@ -262,18 +271,66 @@ static MeshPod CreateCylinder()
 
         pezCheck(pIndex - &inds[0] == FillIndexCount, "Tessellation error.");
 
-        GLuint handle;
         GLsizeiptr size = sizeof(inds);
         const GLvoid* data = &inds[0];
         GLenum usage = GL_STATIC_DRAW;
-        glGenBuffers(1, &handle);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle);
+        glGenBuffers(1, &trianglesVbo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglesVbo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
+    }
+
+    // Create a buffer of 16-bit line indices
+    GLuint lineVbo;
+    if (1) {
+
+        GLushort inds[LineIndexCount];
+        GLushort* pIndex = &inds[0];
+
+        // Circles:
+        GLushort n = 0;
+        for (GLushort j = 0; j < Stacks+1; j++) {
+            for (GLushort i = 0; i < Slices; i++) {
+                *pIndex++ = n + i;
+                *pIndex++ = n + i + 1;
+            }
+            n += Slices + 1;
+        }
+
+        // Longitudinal:
+        n = 0;
+        for (GLushort j = 0; j < Stacks; j++) {
+            for (GLushort i = 0; i < Slices; i++) {
+                *pIndex++ = n + i;
+                *pIndex++ = n + i + (Slices + 1);
+            }
+            n += Slices + 1;
+        }
+
+        pezCheck(pIndex - &inds[0] == LineIndexCount, "Tessellation error.");
+
+        GLsizeiptr size = sizeof(inds);
+        const GLvoid* data = &inds[0];
+        GLenum usage = GL_STATIC_DRAW;
+        glGenBuffers(1, &lineVbo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lineVbo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
     }
 
     mesh.VertexCount = VertexCount;
     mesh.FillIndexCount = FillIndexCount;
+    mesh.LineIndexCount = LineIndexCount;
 
+    glGenVertexArrays(1, &mesh.FillVao);
+    glBindVertexArray(mesh.FillVao);
+    glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglesVbo);
+    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 12, 0);
+    glEnableVertexAttribArray(a("Position"));
+
+    glGenVertexArrays(1, &mesh.LineVao);
+    glBindVertexArray(mesh.LineVao);
+    glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lineVbo);
     glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 12, 0);
     glEnableVertexAttribArray(a("Position"));
 

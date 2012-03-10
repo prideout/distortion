@@ -1,3 +1,22 @@
+-- Simple.VS
+
+in vec4 Position;
+uniform mat4 Projection;
+uniform mat4 Modelview;
+void main()
+{
+    gl_Position = Projection * Modelview * Position;
+}
+
+
+-- Simple.FS
+
+out vec4 FragColor;
+uniform vec4 FrontMaterial = vec4(0.75, 0.75, 0.5, 0.5);
+void main()
+{
+    FragColor = FrontMaterial;
+}
 
 -- Lit.VS
 
