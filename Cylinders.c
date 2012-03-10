@@ -127,9 +127,11 @@ void PezRender()
     glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    glDepthMask(GL_FALSE);
     glUniform3f(u("SpecularMaterial"), 0, 0, 0);
     glUniform4f(u("DiffuseMaterial"), 0, 0, 0, 1);
     glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
+    glDepthMask(GL_TRUE);
 }
 
 void PezHandleMouse(int x, int y, int action)
