@@ -21,16 +21,13 @@ void main()
 -- Lit.VS
 
 in vec4 Position;
-
 out vec3 vPosition;
-
-uniform mat4 Projection;
-uniform mat4 Modelview;
+uniform mat4 ModelviewProjection;
 
 void main()
 {
     vPosition = Position.xyz;
-    gl_Position = Projection * Modelview * Position;
+    gl_Position = ModelviewProjection * Position;
 }
 
 
@@ -38,9 +35,7 @@ void main()
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
-
 in vec3 vPosition[3];
-
 out vec3 gNormal;
 out float gDistance[4];
 
@@ -60,15 +55,12 @@ void main()
 -- Lit.FS
 
 in vec3 gNormal;
-
 out vec4 FragColor;
-
 uniform vec3 AmbientMaterial = vec3(0.2, 0.2, 0.2);
 uniform vec3 SpecularMaterial = vec3(0.5, 0.5, 0.5);
 uniform vec4 FrontMaterial = vec4(0.75, 0.75, 0.5, 0.5);
 uniform vec4 BackMaterial = vec4(0.75, 0.75, 0.5, 0.5);
 uniform float Shininess = 7;
-
 uniform vec3 Hhat;
 uniform vec3 Lhat;
 

@@ -104,12 +104,7 @@ void PezRender()
 {
     Matrix4 mvp = M4Mul(Globals.Transforms.Projection, Globals.Transforms.Modelview);
     float* pMVP = (float*) (&mvp);
-
-    float* pModelview = (float*) &Globals.Transforms.Modelview;
-    float* pProjection = (float*) &Globals.Transforms.Projection;
     MeshPod* mesh = &Globals.Cylinder;
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     Vector3 LightPosition = {0.5, 0.25, 1.0}; // world space
     Vector3 EyePosition = {0, 0, 1}; // world space
@@ -118,15 +113,16 @@ void PezRender()
     Vector3 Lhat = M3MulV3(m, V3Normalize(LightPosition)); // object space
     Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition)); // object space
     Vector3 Hhat = V3Normalize(V3Add(Lhat, Eye));
-    
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
     glUseProgram(Globals.LitProgram);
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
     glUniform3fv(u("Hhat"), 1, &Hhat.x);
     glUniform3fv(u("Lhat"), 1, &Lhat.x);
-    glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
-    glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
+    glUniformMatrix4fv(u("ModelviewProjection"), 1, 0, pMVP);
 
     int instanceCount = 1;
 
