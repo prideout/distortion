@@ -72,19 +72,17 @@ uniform vec4 FrontMaterial = vec4(0.75, 0.75, 0.5, 0.5);
 uniform vec4 BackMaterial = vec4(0.75, 0.75, 0.5, 0.5);
 uniform float Shininess = 7;
 
+uniform vec3 Hhat;
+uniform vec3 Lhat;
+
 void main()
 {
     vec3 N = -normalize(gNormal);
     if (!gl_FrontFacing)
        N = -N;
 
-    vec3 L = normalize(LightPosition);
-    vec3 Eye = vec3(0, 0, 1);
-    vec3 H = normalize(L + Eye);
-    
-    float df = max(0.0, dot(N, L));
-
-    float sf = max(0.0, dot(N, H));
+    float df = max(0.0, dot(N, Lhat));
+    float sf = max(0.0, dot(N, Hhat));
     sf = pow(sf, Shininess);
 
     vec3 diffuse = gl_FrontFacing ? FrontMaterial.rgb : BackMaterial.rgb;

@@ -45,8 +45,8 @@ static MeshPod CreateCylinder();
 #define a(x) glGetAttribLocation(CurrentProgram(), x)
 #define offset(x) ((const GLvoid*)x)
 
-const int Slices = 8;
-const int Stacks = 3;
+const int Slices = 24;
+const int Stacks = 8;
 
 PezConfig PezGetConfig()
 {
@@ -121,11 +121,17 @@ void PezRender()
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    Vector3 LightPosition = {0.5, 0.25, 1.0};
+    Vector3 Lhat = V3Normalize(LightPosition);
+    Vector3 Eye = {0, 0, 1};
+    Vector3 Hhat = V3Normalize(V3Add(Lhat, Eye));
+    
     glUseProgram(Globals.LitProgram);
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
-    //glUniform3fv(u("LightPosition"), 1, (float*) &Globals.LightPosition);;
+    glUniform3fv(u("Hhat"), 1, &Hhat.x);
+    glUniform3fv(u("Lhat"), 1, &Lhat.x);
     glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
     glUniformMatrix4fv(u("Modelview"), 1, 0, pModelview);
     glUniformMatrix4fv(u("Projection"), 1, 0, pProjection);
