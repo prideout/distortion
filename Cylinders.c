@@ -9,8 +9,10 @@
 
 typedef struct {
     int VertexCount;
-    int IndexCount;
-    GLuint Vao;
+    int LineIndexCount;
+    int FillIndexCount;
+    GLuint LineVao;
+    GLuint FillVao;
 } MeshPod;
 
 typedef struct {
@@ -25,8 +27,7 @@ typedef struct {
 struct {
     float Theta;
     GLuint LitProgram;
-    GLuint SinglePointVao;
-    MeshPod CylinderKnot;
+    MeshPod Cylinder;
     TransformsPod Transforms;
 } Globals;
 
@@ -42,7 +43,7 @@ static MeshPod CreateCylinder();
 #define a(x) glGetAttribLocation(CurrentProgram(), x)
 #define offset(x) ((const GLvoid*)x)
 
-const int Slices = 32;
+const int Slices = 4;
 const int Stacks = 3;
 
 PezConfig PezGetConfig()
@@ -72,7 +73,7 @@ void PezInitialize()
 
     // Create geometry
     glUseProgram(Globals.LitProgram);
-    Globals.CylinderKnot = CreateCylinder();
+    Globals.Cylinder = CreateCylinder();
 
     // Misc Initialization
     Globals.Theta = 0;
@@ -95,7 +96,7 @@ void PezUpdate(float seconds)
     // Create the model-view matrix:
     Globals.Transforms.Model = M4MakeRotationY(Globals.Theta);
     Globals.Transforms.Normal = M4GetUpper3x3(Globals.Transforms.Model);
-    Point3 eye = {0, 0, 4};
+    Point3 eye = {0, 1, 4};
     Point3 target = {0, 0, 0};
     Vector3 up = {0, 1, 0};
     Globals.Transforms.View = M4MakeLookAt(eye, target, up);
@@ -109,10 +110,10 @@ void PezRender()
     float* pView = (float*) &Globals.Transforms.View;
     float* pModelview = (float*) &Globals.Transforms.Modelview;
     float* pProjection = (float*) &Globals.Transforms.Projection;
-    MeshPod* mesh = &Globals.CylinderKnot;
+    MeshPod* mesh = &Globals.Cylinder;
 
     glUseProgram(Globals.LitProgram);
-    glBindVertexArray(mesh->Vao);
+    glBindVertexArray(mesh->FillVao);
     glUniformMatrix4fv(u("ViewMatrix"), 1, 0, pView);
     glUniformMatrix4fv(u("ModelMatrix"), 1, 0, pModel);
     glUniformMatrix3fv(u("NormalMatrix"), 1, 0, pNormal);
@@ -124,13 +125,13 @@ void PezRender()
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("DiffuseMaterial"), 0, 0, 1, 1);
-    glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     glDepthMask(GL_FALSE);
     glUniform3f(u("SpecularMaterial"), 0, 0, 0);
     glUniform4f(u("DiffuseMaterial"), 0, 0, 0, 1);
-    glDrawElements(GL_TRIANGLES, mesh->IndexCount, GL_UNSIGNED_SHORT, 0);
+    glDrawElements(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0);
     glDepthMask(GL_TRUE);
 }
 
@@ -204,11 +205,12 @@ static Vector3 EvaluateCylinder(float s, float t)
 static MeshPod CreateCylinder()
 {
     const int VertexCount = Slices * (Stacks+1);
-    const int IndexCount = Slices * Stacks * 6;
+    const int FillIndexCount = Slices * Stacks * 6;
+    const int LineIndexCount = Slices * Stacks * 6;
 
     MeshPod mesh;
-    glGenVertexArrays(1, &mesh.Vao);
-    glBindVertexArray(mesh.Vao);
+    glGenVertexArrays(1, &mesh.FillVao);
+    glBindVertexArray(mesh.FillVao);
 
     // Create a buffer with positions
     if (1) {
@@ -239,7 +241,7 @@ static MeshPod CreateCylinder()
 
     // Create a buffer of 16-bit indices
     if (1) {
-        GLushort inds[IndexCount];
+        GLushort inds[FillIndexCount];
         GLushort* pIndex = &inds[0];
         GLushort n = 0;
         for (GLushort j = 0; j < Stacks; j++) {
@@ -255,7 +257,7 @@ static MeshPod CreateCylinder()
             n += Slices;
         }
 
-        pezCheck(pIndex - &inds[0] == IndexCount, "Tessellation error.");
+        pezCheck(pIndex - &inds[0] == FillIndexCount, "Tessellation error.");
 
         GLuint handle;
         GLsizeiptr size = sizeof(inds);
@@ -267,7 +269,7 @@ static MeshPod CreateCylinder()
     }
 
     mesh.VertexCount = VertexCount;
-    mesh.IndexCount = IndexCount;
+    mesh.FillIndexCount = FillIndexCount;
 
     glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 12, 0);
     glEnableVertexAttribArray(a("Position"));
