@@ -10,8 +10,8 @@ DEMOS=\
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
-run: Cylinders
-	./Cylinders
+run: TextureWarping
+	./TextureWarping
 
 all: $(DEMOS)
 
