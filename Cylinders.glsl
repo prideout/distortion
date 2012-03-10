@@ -1,11 +1,11 @@
 -- Simple.VS
 
 in vec4 Position;
-uniform mat4 ModelviewProjection;
+uniform mat4 ModelviewProjection[6];
 
 void main()
 {
-    gl_Position = ModelviewProjection * Position;
+    gl_Position = ModelviewProjection[gl_InstanceID] * Position;
 }
 
 
@@ -22,12 +22,12 @@ void main()
 
 in vec4 Position;
 out vec3 vPosition;
-uniform mat4 ModelviewProjection;
+uniform mat4 ModelviewProjection[6];
 
 void main()
 {
     vPosition = Position.xyz;
-    gl_Position = ModelviewProjection * Position;
+    gl_Position = ModelviewProjection[gl_InstanceID] * Position;
 }
 
 

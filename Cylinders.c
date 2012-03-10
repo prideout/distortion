@@ -15,19 +15,13 @@ typedef struct {
     GLuint FillVao;
 } MeshPod;
 
-typedef struct {
-    Matrix4 Projection;
-    Matrix4 Modelview;
-    Matrix4 View;
-    Matrix4 Model;
-} TransformsPod;
-
 struct {
     float Theta;
     GLuint LitProgram;
     GLuint SimpleProgram;
     MeshPod Cylinder;
-    TransformsPod Transforms;
+    Matrix4 Projection;
+    Matrix4 View;
 } Globals;
 
 typedef struct {
@@ -68,7 +62,11 @@ void PezInitialize()
     float fovy = 16 * TwoPi / 180;
     float aspect = (float) cfg.Width / cfg.Height;
     float zNear = 0.1, zFar = 300;
-    Globals.Transforms.Projection = M4MakePerspective(fovy, aspect, zNear, zFar);
+    Globals.Projection = M4MakePerspective(fovy, aspect, zNear, zFar);
+    Point3 eye = {0, 1, 4};
+    Point3 target = {0, 0, 0};
+    Vector3 up = {0, 1, 0};
+    Globals.View = M4MakeLookAt(eye, target, up);
 
     // Create geometry
     Globals.Cylinder = CreateCylinder();
@@ -90,24 +88,18 @@ void PezUpdate(float seconds)
 {
     const float RadiansPerSecond = 0.5f;
     Globals.Theta += seconds * RadiansPerSecond;
-    
-    // Create the model-view matrix:
-    Globals.Transforms.Model = M4MakeRotationY(Globals.Theta);
-    Point3 eye = {0, 1, 4};
-    Point3 target = {0, 0, 0};
-    Vector3 up = {0, 1, 0};
-    Globals.Transforms.View = M4MakeLookAt(eye, target, up);
-    Globals.Transforms.Modelview = M4Mul(Globals.Transforms.View, Globals.Transforms.Model);
 }
 
 void PezRender()
 {
-    Matrix4 mvp = M4Mul(Globals.Transforms.Projection, Globals.Transforms.Modelview);
+    Matrix4 Model = M4MakeRotationY(Globals.Theta);
+    Matrix4 Modelview = M4Mul(Globals.View, Model);
+    Matrix4 mvp = M4Mul(Globals.Projection, Modelview);
     Vector3 LightPosition = {0.5, 0.25, 1.0}; // world space
-    Vector3 EyePosition = {0, 0, 1}; // world space
-    Matrix3 m = M3Transpose(M4GetUpper3x3(Globals.Transforms.Model));
+    Vector3 EyePosition = {0, 0, 1};          // world space
+    Matrix3 m = M3Transpose(M4GetUpper3x3(Model));
     Vector3 Lhat = M3MulV3(m, V3Normalize(LightPosition)); // object space
-    Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition)); // object space
+    Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition));   // object space
     Vector3 Hhat = V3Normalize(V3Add(Lhat, Eye));
 
     int instanceCount = 1;
