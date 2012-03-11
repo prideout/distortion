@@ -7,6 +7,11 @@
 #include "pez.h"
 #include "vmath.h"
 
+struct {
+    GLuint Position;
+    GLuint TexCoord;
+} Attr;
+
 typedef struct {
     int VertexCount;
     int LineIndexCount;
@@ -43,7 +48,6 @@ static MeshPod CreateGrid(int rows, int cols);
 static GLuint CreateRenderTarget(GLuint* colorTexture);
 
 #define u(x) glGetUniformLocation(CurrentProgram(), x)
-#define a(x) glGetAttribLocation(CurrentProgram(), x)
 #define offset(x) ((const GLvoid*)x)
 
 const int Slices = 24;
@@ -63,6 +67,12 @@ PezConfig PezGetConfig()
 void PezInitialize()
 {
     const PezConfig cfg = PezGetConfig();
+
+    // Assign the vertex attributes to integer slots:
+    GLuint* pAttr = (GLuint*) &Attr;
+    for (int a = 0; a < sizeof(Attr) / sizeof(GLuint); a++) {
+        *pAttr++ = a;
+    }
 
     // Compile shaders
     Globals.SimpleProgram = LoadProgram("Simple.VS", 0, "Simple.FS");
@@ -84,7 +94,7 @@ void PezInitialize()
     Globals.FboHandle = CreateRenderTarget(&Globals.FboTexture);
     glUseProgram(Globals.QuadProgram);
     Globals.QuadVao = CreateQuad();
-    Globals.Grid = CreateGrid(3, 3); // 10, 18);
+    Globals.Grid = CreateGrid(10, 18);
 
     // Create geometry
     Globals.Cylinder = CreateCylinder();
@@ -376,15 +386,15 @@ static MeshPod CreateCylinder()
     glBindVertexArray(mesh.FillVao);
     glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglesVbo);
-    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 12, 0);
-    glEnableVertexAttribArray(a("Position"));
+    glVertexAttribPointer(Attr.Position, 3, GL_FLOAT, GL_FALSE, 12, 0);
+    glEnableVertexAttribArray(Attr.Position);
 
     glGenVertexArrays(1, &mesh.LineVao);
     glBindVertexArray(mesh.LineVao);
     glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lineVbo);
-    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 12, 0);
-    glEnableVertexAttribArray(a("Position"));
+    glVertexAttribPointer(Attr.Position, 3, GL_FLOAT, GL_FALSE, 12, 0);
+    glEnableVertexAttribArray(Attr.Position);
 
     return mesh;
 }
@@ -422,10 +432,10 @@ static GLuint CreateRenderTarget(GLuint* colorTexture)
 static MeshPod CreateGrid(int rows, int columns)
 {
     MeshPod grid;
-    grid.VertexCount = (rows+1) * (columns+1);
-    grid.FillIndexCount = 6 * rows * columns;
-    int horizontalLines = columns * (rows + 1);
-    int verticalLines = rows * (columns + 1);
+    grid.VertexCount = (columns+1) * (rows+1);
+    grid.FillIndexCount = 6 * columns * rows;
+    int horizontalLines = rows * (columns + 1);
+    int verticalLines = columns * (rows + 1);
     grid.LineIndexCount = 2 * (horizontalLines + verticalLines);
 
     // Create a buffer with interleaved positions and texture coordinates
@@ -433,8 +443,8 @@ static MeshPod CreateGrid(int rows, int columns)
     if (1) {
         Vertex verts[grid.VertexCount];
         Vertex* pVert = &verts[0];
-        float ds = 1.0f / rows;
-        float dt = 1.0f / columns;
+        float ds = 1.0f / columns;
+        float dt = 1.0f / rows;
 
         // The upper bounds in these loops are tweaked to reduce the
         // chance of precision error causing an incorrect # of iterations.
@@ -463,9 +473,9 @@ static MeshPod CreateGrid(int rows, int columns)
         GLushort inds[grid.FillIndexCount];
         GLushort* pIndex = &inds[0];
         GLushort n = 0;
-        for (GLushort j = 0; j < rows; j++) {
-            int vps = columns+1; // vertices per row
-            for (GLushort i = 0; i < columns; i++) {
+        for (GLushort j = 0; j < columns; j++) {
+            int vps = rows+1; // vertices per row
+            for (GLushort i = 0; i < rows; i++) {
                 *pIndex++ = (n + i + vps);
                 *pIndex++ = n + (i + 1);
                 *pIndex++ = n + i;
@@ -495,22 +505,22 @@ static MeshPod CreateGrid(int rows, int columns)
 
         // Horizontal:
         GLushort n = 0;
-        for (GLushort j = 0; j < rows+1; j++) {
-            for (GLushort i = 0; i < columns; i++) {
+        for (GLushort j = 0; j < columns+1; j++) {
+            for (GLushort i = 0; i < rows; i++) {
                 *pIndex++ = n + i;
                 *pIndex++ = n + i + 1;
             }
-            n += columns + 1;
+            n += rows + 1;
         }
 
         // Vertical:
         n = 0;
-        for (GLushort j = 0; j < rows; j++) {
-            for (GLushort i = 0; i < columns+1; i++) {
+        for (GLushort j = 0; j < columns; j++) {
+            for (GLushort i = 0; i < rows+1; i++) {
                 *pIndex++ = n + i;
-                *pIndex++ = n + i + (columns + 1);
+                *pIndex++ = n + i + (rows + 1);
             }
-            n += columns + 1;
+            n += rows + 1;
         }
 
         pezCheck(pIndex - &inds[0] == grid.LineIndexCount, "Tessellation error.");
@@ -527,17 +537,20 @@ static MeshPod CreateGrid(int rows, int columns)
     glBindVertexArray(grid.FillVao);
     glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglesVbo);
-    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 20, 0);
-    glEnableVertexAttribArray(a("Position"));
-    glVertexAttribPointer(a("TexCoord"), 2, GL_FLOAT, GL_FALSE, 20, offset(12));
-    glEnableVertexAttribArray(a("TexCoord"));
+    glVertexAttribPointer(Attr.Position, 3, GL_FLOAT, GL_FALSE, 20, 0);
+    glEnableVertexAttribArray(Attr.Position);
+    glVertexAttribPointer(Attr.TexCoord, 2, GL_FLOAT, GL_FALSE, 20, offset(12));
+    glEnableVertexAttribArray(Attr.TexCoord);
 
     glGenVertexArrays(1, &grid.LineVao);
     glBindVertexArray(grid.LineVao);
     glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lineVbo);
-    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 20, 0);
-    glEnableVertexAttribArray(a("Position"));
+    glVertexAttribPointer(Attr.Position, 3, GL_FLOAT, GL_FALSE, 20, 0);
+    glEnableVertexAttribArray(Attr.Position);
+    glDisableVertexAttribArray(Attr.TexCoord);
+
+    glBindVertexArray(0);
 
     return grid;
 }
@@ -587,9 +600,9 @@ static GLuint CreateQuad()
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(q), q, GL_STATIC_DRAW);
-    glVertexAttribPointer(a("Position"), 2, GL_FLOAT, GL_FALSE, 16, 0);
-    glVertexAttribPointer(a("TexCoord"), 2, GL_FLOAT, GL_FALSE, 16, offset(8));
-    glEnableVertexAttribArray(a("Position"));
-    glEnableVertexAttribArray(a("TexCoord"));
+    glVertexAttribPointer(Attr.Position, 2, GL_FLOAT, GL_FALSE, 16, 0);
+    glVertexAttribPointer(Attr.TexCoord, 2, GL_FLOAT, GL_FALSE, 16, offset(8));
+    glEnableVertexAttribArray(Attr.Position);
+    glEnableVertexAttribArray(Attr.TexCoord);
     return vao;
 }

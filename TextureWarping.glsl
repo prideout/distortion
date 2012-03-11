@@ -1,10 +1,10 @@
 -- Grid.VS
 
-in vec2 Position;
+layout(location = 0) in vec3 Position;
 
 void main()
 {
-    gl_Position = vec4(Position, 0, 1);
+    gl_Position = vec4(Position, 1);
 }
 
 -- Grid.FS
@@ -13,19 +13,19 @@ out vec4 FragColor;
 
 void main()
 {
-    FragColor = vec4(0,0,0,1);
+    FragColor = vec4(0,0,0.5,0.25);
 }
 
 -- Quad.VS
 
-in vec2 Position;
-in vec2 TexCoord;
+layout(location = 0) in vec3 Position;
+layout(location = 1) in vec2 TexCoord;
 out vec2 vTexCoord;
 
 void main()
 {
     vTexCoord = TexCoord;
-    gl_Position = vec4(Position, 0, 1);
+    gl_Position = vec4(Position, 1);
 }
 
 -- Quad.FS
@@ -41,7 +41,7 @@ void main()
 
 -- Simple.VS
 
-in vec4 Position;
+layout(location = 0) in vec4 Position;
 uniform mat4 ModelviewProjection[7];
 
 void main()
@@ -61,7 +61,7 @@ void main()
 
 -- Lit.VS
 
-in vec4 Position;
+layout(location = 0) in vec4 Position;
 out vec3 vPosition;
 out int vInstanceID;
 uniform mat4 ModelviewProjection[7];
