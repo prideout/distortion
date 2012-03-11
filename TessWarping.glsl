@@ -42,6 +42,53 @@ void main()
 in vec4 Position;
 out vec3 vPosition;
 out int vInstanceID;
+
+void main()
+{
+    vInstanceID = gl_InstanceID;
+    vPosition = Position.xyz;
+}
+
+
+-- Lit.TCS
+
+layout(vertices = 3) out;
+
+in vec3 vPosition[];
+out vec3 tcPosition[];
+
+in int vInstanceID[];
+out int tcInstanceID[];
+
+out float tcRadius[];
+
+uniform mat4 ModelviewProjection[7];
+
+#define ID gl_InvocationID
+
+void main()
+{
+    tcPosition[ID] = vPosition[ID];
+    tcInstanceID[ID] = vInstanceID[ID];
+
+    vec4 p = ModelviewProjection[vInstanceID[ID]] * vec4(vPosition[ID], 1);
+    float r = length(p.xy / p.w);
+    tcRadius[ID] = r;
+
+    gl_TessLevelInner[0] = gl_TessLevelOuter[0] =
+    gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = 5;
+}
+
+-- Lit.TES
+
+layout(triangles, equal_spacing, ccw) in;
+
+in vec3 tcPosition[];
+out vec3 tePosition;
+in int tcInstanceID[];
+out int teInstanceID;
+in float tcRadius[];
+out float teRadius;
 uniform mat4 ModelviewProjection[7];
 
 vec4 Distort(vec4 p)
@@ -64,28 +111,32 @@ vec4 Distort(vec4 p)
 
 void main()
 {
-    vInstanceID = gl_InstanceID;
-    vPosition = Position.xyz;
-    vec4 p = ModelviewProjection[gl_InstanceID] * Position;
+    vec3 p0 = gl_TessCoord.x * tcPosition[0];
+    vec3 p1 = gl_TessCoord.y * tcPosition[1];
+    vec3 p2 = gl_TessCoord.z * tcPosition[2];
+    tePosition = (p0 + p1 + p2);
+    teInstanceID = tcInstanceID[0];
+    teRadius = (tcRadius[0] + tcRadius[1] * tcRadius[2]) / 3.0;
+    vec4 p = ModelviewProjection[teInstanceID] * vec4(tePosition, 1);
     gl_Position = Distort(p);
 }
-
 
 -- Lit.GS
 
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
-in vec3 vPosition[3];
+
+in vec3 tePosition[3];
 out vec3 gNormal;
-in int vInstanceID[3];
+in int teInstanceID[3];
 out float gDistance[4];
 flat out int gInstanceID;
 
 void main()
 {
-    gInstanceID = vInstanceID[0];
-    vec3 A = vPosition[2] - vPosition[0];
-    vec3 B = vPosition[1] - vPosition[0];
+    gInstanceID = teInstanceID[0];
+    vec3 A = tePosition[2] - tePosition[0];
+    vec3 B = tePosition[1] - tePosition[0];
     gNormal = normalize(cross(A, B));
 
     for (int j = 0; j < 3; j++) {

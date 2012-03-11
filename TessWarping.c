@@ -36,8 +36,8 @@ static MeshPod CreateCylinder();
 #define a(x) glGetAttribLocation(CurrentProgram(), x)
 #define offset(x) ((const GLvoid*)x)
 
-const int Slices = 24;
-const int Stacks = 8;
+const int Slices = 12;//24;
+const int Stacks = 4;//8;
 
 PezConfig PezGetConfig()
 {
@@ -56,7 +56,7 @@ void PezInitialize()
 
     // Compile shaders
     Globals.SimpleProgram = LoadProgram("Simple.VS", 0, 0, 0, "Simple.FS");
-    Globals.LitProgram = LoadProgram("Lit.VS", 0, 0, "Lit.GS", "Lit.FS");
+    Globals.LitProgram = LoadProgram("Lit.VS", "Lit.TCS", "Lit.TES", "Lit.GS", "Lit.FS");
 
     // Set up viewport
     float fovy = 16 * TwoPi / 180;
@@ -147,8 +147,10 @@ void PezRender()
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glBindVertexArray(mesh->FillVao);
-    glDrawElementsInstanced(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
+    glPatchParameteri(GL_PATCH_VERTICES, 3);
+    glDrawElementsInstanced(GL_PATCHES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
 
+    glPatchParameteri(GL_PATCH_VERTICES, 2);
     glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("Color"), 0, 0, 0, 1);
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
@@ -156,6 +158,7 @@ void PezRender()
     glDepthMask(GL_FALSE);
     glBindVertexArray(mesh->LineVao);
     glDrawElementsInstanced(GL_LINES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
+    //glDrawElementsInstanced(GL_PATCHES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
     glDepthMask(GL_TRUE);
 }
 
