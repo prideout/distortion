@@ -1,6 +1,43 @@
 -- Simple.VS
 
-in vec4 Position;
+in vec3 Position;
+out vec3 vPosition;
+out int vInstanceID;
+
+void main()
+{
+    vInstanceID = gl_InstanceID;
+    vPosition = Position;
+}
+
+-- Simple.TCS
+
+layout(vertices = 2) out;
+
+in vec3 vPosition[];
+out vec3 tcPosition[];
+
+in int vInstanceID[];
+out int tcInstanceID[];
+
+uniform float TessLevel;
+
+#define ID gl_InvocationID
+
+void main()
+{
+    tcPosition[ID] = vPosition[ID];
+    tcInstanceID[ID] = vInstanceID[ID];
+    gl_TessLevelOuter[0] = 1;
+    gl_TessLevelOuter[1] = TessLevel;
+}
+
+-- Simple.TES
+
+layout(isolines) in;
+
+in vec3 tcPosition[];
+in int tcInstanceID[];
 uniform mat4 ModelviewProjection[7];
 
 vec4 Distort(vec4 p)
@@ -23,10 +60,11 @@ vec4 Distort(vec4 p)
 
 void main()
 {
-    vec4 p = ModelviewProjection[gl_InstanceID] * Position;
+    vec3 p0 =        gl_TessCoord.x  * tcPosition[0];
+    vec3 p1 = (1.0 - gl_TessCoord.x) * tcPosition[1];
+    vec4 p = ModelviewProjection[tcInstanceID[0]] * vec4(p0 + p1, 1);
     gl_Position = Distort(p);
 }
-
 
 -- Simple.FS
 
@@ -62,6 +100,8 @@ out int tcInstanceID[];
 
 out float tcRadius[];
 
+uniform float TessLevel;
+
 uniform mat4 ModelviewProjection[7];
 
 #define ID gl_InvocationID
@@ -76,7 +116,7 @@ void main()
     tcRadius[ID] = r;
 
     gl_TessLevelInner[0] = gl_TessLevelOuter[0] =
-    gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = 5;
+    gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = TessLevel;
 }
 
 -- Lit.TES

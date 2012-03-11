@@ -55,7 +55,7 @@ void PezInitialize()
     const PezConfig cfg = PezGetConfig();
 
     // Compile shaders
-    Globals.SimpleProgram = LoadProgram("Simple.VS", 0, 0, 0, "Simple.FS");
+    Globals.SimpleProgram = LoadProgram("Simple.VS", "Simple.TCS", "Simple.TES", 0, "Simple.FS");
     Globals.LitProgram = LoadProgram("Lit.VS", "Lit.TCS", "Lit.TES", "Lit.GS", "Lit.FS");
 
     // Set up viewport
@@ -135,6 +135,7 @@ void PezRender()
 
     int instanceCount = Instances;
     MeshPod* mesh = &Globals.Cylinder;
+    float TessLevel = 5.0f;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
@@ -144,6 +145,7 @@ void PezRender()
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
     glUniform3fv(u("Hhat"), Instances, &Hhat[0].x);
     glUniform3fv(u("Lhat"), Instances, &Lhat[0].x);
+    glUniform1f(u("TessLevel"), TessLevel);
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glBindVertexArray(mesh->FillVao);
@@ -153,12 +155,12 @@ void PezRender()
     glPatchParameteri(GL_PATCH_VERTICES, 2);
     glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("Color"), 0, 0, 0, 1);
+    glUniform1f(u("TessLevel"), TessLevel);
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glDepthMask(GL_FALSE);
     glBindVertexArray(mesh->LineVao);
-    glDrawElementsInstanced(GL_LINES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
-    //glDrawElementsInstanced(GL_PATCHES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
+    glDrawElementsInstanced(GL_PATCHES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
     glDepthMask(GL_TRUE);
 }
 
