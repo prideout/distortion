@@ -4,14 +4,15 @@ LIBS=-lX11 -lGL -lpng
 DEMOS=\
 	Cylinders \
 	TextureWarping \
+	BetterGrid \
 	VertexWarping \
 	TessWarping \
 	TiledRendering \
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
-run: TextureWarping
-	./TextureWarping
+run: BetterGrid
+	./BetterGrid
 
 all: $(DEMOS)
 
