@@ -20,22 +20,26 @@ struct {
     GLuint LitProgram;
     GLuint SimpleProgram;
     GLuint QuadProgram;
+    GLuint GridProgram;
     MeshPod Cylinder;
     Matrix4 Projection;
     Matrix4 View;
     GLuint FboTexture;
     GLuint FboHandle;
     GLuint QuadVao;
+    MeshPod Grid;
 } Globals;
 
 typedef struct {
-    Vector3 Position;
+    Point3 Position;
+    Vector2 TexCoord;
 } Vertex;
 
 static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKey);
 static GLuint CurrentProgram();
 static MeshPod CreateCylinder();
-static GLuint CreateQuad(int sourceWidth, int sourceHeight, int destWidth, int destHeight);
+static GLuint CreateQuad();
+static MeshPod CreateGrid(int rows, int cols);
 static GLuint CreateRenderTarget(GLuint* colorTexture);
 
 #define u(x) glGetUniformLocation(CurrentProgram(), x)
@@ -63,6 +67,7 @@ void PezInitialize()
     // Compile shaders
     Globals.SimpleProgram = LoadProgram("Simple.VS", 0, "Simple.FS");
     Globals.QuadProgram = LoadProgram("Quad.VS", 0, "Quad.FS");
+    Globals.GridProgram = LoadProgram("Grid.VS", 0, "Grid.FS");
     Globals.LitProgram = LoadProgram("Lit.VS", "Lit.GS", "Lit.FS");
 
     // Set up viewport
@@ -77,7 +82,9 @@ void PezInitialize()
 
     // Create offscreen buffer:
     Globals.FboHandle = CreateRenderTarget(&Globals.FboTexture);
-    Globals.QuadVao = CreateQuad(cfg.Width, -cfg.Height, cfg.Width, cfg.Height);
+    glUseProgram(Globals.QuadProgram);
+    Globals.QuadVao = CreateQuad();
+    Globals.Grid = CreateGrid(3, 3); // 10, 18);
 
     // Create geometry
     Globals.Cylinder = CreateCylinder();
@@ -172,11 +179,21 @@ void PezRender()
     glDepthMask(GL_TRUE);
 
     glDisable(GL_DEPTH_TEST);
+
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(Globals.QuadProgram);
-    glBindVertexArray(Globals.QuadVao);
     glBindTexture(GL_TEXTURE_2D, Globals.FboTexture);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    if (0) {
+        glBindVertexArray(Globals.QuadVao);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    } else {
+        glBindVertexArray(Globals.Grid.FillVao);
+        glDrawElements(GL_TRIANGLES, Globals.Grid.FillIndexCount, GL_UNSIGNED_SHORT, 0);
+
+        glUseProgram(Globals.GridProgram);
+        glBindVertexArray(Globals.Grid.LineVao);
+        glDrawElements(GL_LINES, Globals.Grid.LineIndexCount, GL_UNSIGNED_SHORT, 0);
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -238,9 +255,9 @@ static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKe
     return programHandle;
 }
 
-static Vector3 EvaluateCylinder(float s, float t)
+static Point3 EvaluateCylinder(float s, float t)
 {
-    Vector3 range;
+    Point3 range;
     const float h = 1.0;
     range.x = 0.5 * cos(t * TwoPi);
     range.y = h * (s - 0.5);
@@ -257,15 +274,11 @@ static MeshPod CreateCylinder()
     const int longitudinal = Stacks*Slices;
     const int LineIndexCount = 2 * (circles + longitudinal);
  
-    MeshPod mesh;
-    glGenVertexArrays(1, &mesh.FillVao);
-    glBindVertexArray(mesh.FillVao);
-
     // Create a buffer with positions
     GLuint positionsVbo;
     if (1) {
-        Vertex verts[VertexCount];
-        Vertex* pVert = &verts[0];
+        Point3 verts[VertexCount];
+        Point3* pVert = &verts[0];
         float ds = 1.0f / Stacks;
         float dt = 1.0f / Slices;
 
@@ -273,15 +286,14 @@ static MeshPod CreateCylinder()
         // chance of precision error causing an incorrect # of iterations.
         for (float s = 0; s < 1 + ds / 2; s += ds) {
             for (float t = 0; t < 1 + dt / 2; t += dt) {
-                pVert->Position = EvaluateCylinder(s, t);
-                ++pVert;
+                *pVert++ = EvaluateCylinder(s, t);
             }
         }
 
         pezCheck(pVert - &verts[0] == VertexCount, "Tessellation error.");
 
         GLsizeiptr size = sizeof(verts);
-        const GLvoid* data = &verts[0].Position.x;
+        const GLvoid* data = &verts[0].x;
         GLenum usage = GL_STATIC_DRAW;
         glGenBuffers(1, &positionsVbo);
         glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
@@ -355,6 +367,7 @@ static MeshPod CreateCylinder()
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
     }
 
+    MeshPod mesh;
     mesh.VertexCount = VertexCount;
     mesh.FillIndexCount = FillIndexCount;
     mesh.LineIndexCount = LineIndexCount;
@@ -406,8 +419,138 @@ static GLuint CreateRenderTarget(GLuint* colorTexture)
     return fboHandle;
 }
 
-static GLuint CreateQuad(int sourceWidth, int sourceHeight, int destWidth, int destHeight)
+static MeshPod CreateGrid(int rows, int columns)
 {
+    MeshPod grid;
+    grid.VertexCount = (rows+1) * (columns+1);
+    grid.FillIndexCount = 6 * rows * columns;
+    int horizontalLines = columns * (rows + 1);
+    int verticalLines = rows * (columns + 1);
+    grid.LineIndexCount = 2 * (horizontalLines + verticalLines);
+
+    // Create a buffer with interleaved positions and texture coordinates
+    GLuint positionsVbo;
+    if (1) {
+        Vertex verts[grid.VertexCount];
+        Vertex* pVert = &verts[0];
+        float ds = 1.0f / rows;
+        float dt = 1.0f / columns;
+
+        // The upper bounds in these loops are tweaked to reduce the
+        // chance of precision error causing an incorrect # of iterations.
+        for (float s = 0; s < 1 + ds / 2; s += ds) {
+            for (float t = 0; t < 1 + dt / 2; t += dt) {
+                pVert->Position = (Point3){s*2-1, t*2-1, 0};
+                pVert->TexCoord.x = s;
+                pVert->TexCoord.y = t;
+                ++pVert;
+            }
+        }
+
+        pezCheck(pVert - &verts[0] == grid.VertexCount, "Tessellation error.");
+
+        GLsizeiptr size = sizeof(verts);
+        const GLvoid* data = &verts[0].Position.x;
+        GLenum usage = GL_STATIC_DRAW;
+        glGenBuffers(1, &positionsVbo);
+        glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
+        glBufferData(GL_ARRAY_BUFFER, size, data, usage);
+    }
+
+    // Create a buffer of 16-bit triangle indices
+    GLuint trianglesVbo;
+    if (1) {
+        GLushort inds[grid.FillIndexCount];
+        GLushort* pIndex = &inds[0];
+        GLushort n = 0;
+        for (GLushort j = 0; j < rows; j++) {
+            int vps = columns+1; // vertices per row
+            for (GLushort i = 0; i < columns; i++) {
+                *pIndex++ = (n + i + vps);
+                *pIndex++ = n + (i + 1);
+                *pIndex++ = n + i;
+                
+                *pIndex++ = (n + (i + 1) + vps);
+                *pIndex++ = (n + (i + 1));
+                *pIndex++ = (n + i + vps);
+            }
+            n += vps;
+        }
+
+        pezCheck(pIndex - &inds[0] == grid.FillIndexCount, "Tessellation error.");
+
+        GLsizeiptr size = sizeof(inds);
+        const GLvoid* data = &inds[0];
+        GLenum usage = GL_STATIC_DRAW;
+        glGenBuffers(1, &trianglesVbo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglesVbo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
+    }
+
+    // Create a buffer of 16-bit line indices
+    GLuint lineVbo;
+    if (1) {
+        GLushort inds[grid.LineIndexCount];
+        GLushort* pIndex = &inds[0];
+
+        // Horizontal:
+        GLushort n = 0;
+        for (GLushort j = 0; j < rows+1; j++) {
+            for (GLushort i = 0; i < columns; i++) {
+                *pIndex++ = n + i;
+                *pIndex++ = n + i + 1;
+            }
+            n += columns + 1;
+        }
+
+        // Vertical:
+        n = 0;
+        for (GLushort j = 0; j < rows; j++) {
+            for (GLushort i = 0; i < columns+1; i++) {
+                *pIndex++ = n + i;
+                *pIndex++ = n + i + (columns + 1);
+            }
+            n += columns + 1;
+        }
+
+        pezCheck(pIndex - &inds[0] == grid.LineIndexCount, "Tessellation error.");
+
+        GLsizeiptr size = sizeof(inds);
+        const GLvoid* data = &inds[0];
+        GLenum usage = GL_STATIC_DRAW;
+        glGenBuffers(1, &lineVbo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lineVbo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
+    }
+    
+    glGenVertexArrays(1, &grid.FillVao);
+    glBindVertexArray(grid.FillVao);
+    glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, trianglesVbo);
+    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 20, 0);
+    glEnableVertexAttribArray(a("Position"));
+    glVertexAttribPointer(a("TexCoord"), 2, GL_FLOAT, GL_FALSE, 20, offset(12));
+    glEnableVertexAttribArray(a("TexCoord"));
+
+    glGenVertexArrays(1, &grid.LineVao);
+    glBindVertexArray(grid.LineVao);
+    glBindBuffer(GL_ARRAY_BUFFER, positionsVbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, lineVbo);
+    glVertexAttribPointer(a("Position"), 3, GL_FLOAT, GL_FALSE, 20, 0);
+    glEnableVertexAttribArray(a("Position"));
+
+    return grid;
+}
+
+static GLuint CreateQuad()
+{
+    const PezConfig cfg = PezGetConfig();
+
+    int sourceWidth = cfg.Width;
+    int sourceHeight = -cfg.Height;
+    int destWidth = cfg.Width;
+    int destHeight = cfg.Height;
+
     // Stretch to fit:
     float q[] = {
         -1, -1, 0, 1,

@@ -236,10 +236,6 @@ static MeshPod CreateCylinder()
     const int longitudinal = Stacks*Slices;
     const int LineIndexCount = 2 * (circles + longitudinal);
  
-    MeshPod mesh;
-    glGenVertexArrays(1, &mesh.FillVao);
-    glBindVertexArray(mesh.FillVao);
-
     // Create a buffer with positions
     GLuint positionsVbo;
     if (1) {
@@ -334,6 +330,7 @@ static MeshPod CreateCylinder()
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, usage);
     }
 
+    MeshPod mesh;
     mesh.VertexCount = VertexCount;
     mesh.FillIndexCount = FillIndexCount;
     mesh.LineIndexCount = LineIndexCount;
