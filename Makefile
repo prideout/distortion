@@ -13,8 +13,8 @@ DEMOS=\
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
-run: TiledRendering
-	./TiledRendering
+run: TessWarping
+	./TessWarping
 
 all: $(DEMOS)
 
