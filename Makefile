@@ -7,6 +7,7 @@ DEMOS=\
 	TextureWarping-PincushionGrid \
 	TextureWarping-NonuniformGrid \
 	TiledRendering \
+	Checkerboard \
 	VertexWarping \
 	TessWarping \
 

@@ -54,7 +54,6 @@ const int Slices = 24;
 const int Stacks = 8;
 const int GridRows = 20;
 const int GridCols = 36;
-Vector2 GridPoints[37][21];
 
 PezConfig PezGetConfig()
 {
@@ -70,22 +69,6 @@ PezConfig PezGetConfig()
 void PezInitialize()
 {
     const PezConfig cfg = PezGetConfig();
-
-    // Partition the screen
-    float ds = 1.0f / GridCols;
-    float dt = 1.0f / GridRows;
-    int i = 0;
-    for (float s = 0; s < 1 + ds / 2; s += ds, i++) {
-        int j = 0;
-        for (float t = 0; t < 1 + dt / 2; t += dt, j++) {
-            float u = s*2.0 - 1.0;
-            float v = t*2.0 - 1.0;
-            u = (u*u*copysign(1.0,u) + 1.0) / 2.0;
-            v = (v*v*copysign(1.0,v) + 1.0) / 2.0;
-            GridPoints[i][j].x = floor(u * cfg.Width);
-            GridPoints[i][j].y = floor(v * cfg.Height);
-        }
-    }
 
     // Assign the vertex attributes to integer slots:
     GLuint* pAttr = (GLuint*) &Attr;
@@ -153,8 +136,6 @@ Matrix4 M4PickMatrix(GLfloat x, GLfloat y, GLfloat width, GLfloat height, GLint*
 	return m;
 }
 
-static void RenderCells(GLenum mode, int indexCount, int instanceCount, Matrix4* modelviews);
-
 void PezRender()
 {
     #define Instances 7
@@ -186,63 +167,79 @@ void PezRender()
     Vector3 EyePosition = {0, 0, 1};          // world space
 
     Matrix4 MV[Instances];
+    Matrix4 MVP[Instances];
     Vector3 Lhat[Instances];
     Vector3 Hhat[Instances];
     for (int i = 0; i < Instances; i++) {
         MV[i] = M4Mul(Globals.View, Model[i]);
+        MVP[i] = M4Mul(Globals.Projection, MV[i]);
         Matrix3 m = M3Transpose(M4GetUpper3x3(Model[i]));
         Lhat[i] = M3MulV3(m, V3Normalize(LightPosition));    // object space
         Vector3 Eye =  M3MulV3(m, V3Normalize(EyePosition)); // object space
         Hhat[i] = V3Normalize(V3Add(Lhat[i], Eye));
     }
 
+    int instanceCount = Instances;
     MeshPod* mesh = &Globals.Cylinder;
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
+  
     glUseProgram(Globals.LitProgram);
     glUniform3f(u("SpecularMaterial"), 0.4, 0.4, 0.4);
     glUniform4f(u("FrontMaterial"), 0, 0, 1, 1);
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
     glUniform3fv(u("Hhat"), Instances, &Hhat[0].x);
     glUniform3fv(u("Lhat"), Instances, &Lhat[0].x);
+
     glBindVertexArray(mesh->FillVao);
-    RenderCells(GL_TRIANGLES, mesh->FillIndexCount, Instances, MV);
+
+    PezConfig cfg = PezGetConfig();
+    GLint viewport[] = {0, 0, cfg.Width, cfg.Height};
+
+    float cellWidth = (float) cfg.Width / GridCols;
+    float cellHeight = (float) cfg.Height / GridRows;
+
+    for (int row = 0; row < GridRows; row++) {
+        for (int col = 0; col < GridCols; col++) {
+            if ((row+col) % 2 == 0) continue; // checkboard, just for fun
+            float x = cellWidth * col;
+            float y = cellHeight * row;
+            Matrix4 pickmatrix = M4PickMatrix(x + cellWidth/2, y + cellHeight/2, cellWidth, cellHeight, viewport);
+            glViewport(x, y, cellWidth, cellHeight);
+            for (int i = 0; i < Instances; i++) {
+                Matrix4 projection = M4Mul(M4Transpose(pickmatrix),Globals.Projection);
+                MVP[i] = M4Mul(projection, MV[i]);
+            }
+            glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
+            glDrawElementsInstanced(GL_TRIANGLES, mesh->FillIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
+        }
+    }
 
     glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("Color"), 0, 0, 0, 1);
     glDepthMask(GL_FALSE);
     glBindVertexArray(mesh->LineVao);
-    RenderCells(GL_LINES, mesh->LineIndexCount, Instances, MV);
 
-    glDepthMask(GL_TRUE);
-}
-
-static void RenderCells(GLenum mode, int indexCount, int instanceCount, Matrix4* MV)
-{
-    PezConfig cfg = PezGetConfig();
-    GLint viewport[] = {0, 0, cfg.Width, cfg.Height};
-    Matrix4 MVP[instanceCount];
     for (int row = 0; row < GridRows; row++) {
         for (int col = 0; col < GridCols; col++) {
-            Vector2 c0 = GridPoints[col][row];
-            Vector2 c1 = GridPoints[col][row+1];
-            Vector2 c2 = GridPoints[col+1][row];
-            float x = (c0.x + c2.x) * 0.5;
-            float y = (c0.y + c1.y) * 0.5;
-            float cellWidth = (c2.x - c1.x);
-            float cellHeight = (c1.y - c0.y);
-            Matrix4 pickmatrix = M4PickMatrix(x, y, cellWidth, cellHeight, viewport);
-            glViewport(c0.x, c0.y, cellWidth, cellHeight);
-            for (int i = 0; i < instanceCount; i++) {
+            if ((row+col) % 2 == 0) continue; // checkboard, just for fun
+            float x = cellWidth * col;
+            float y = cellHeight * row;
+            Matrix4 pickmatrix = M4PickMatrix(x + cellWidth/2, y + cellHeight/2, cellWidth, cellHeight, viewport);
+            glViewport(x, y, cellWidth, cellHeight);
+            for (int i = 0; i < Instances; i++) {
                 Matrix4 projection = M4Mul(M4Transpose(pickmatrix),Globals.Projection);
                 MVP[i] = M4Mul(projection, MV[i]);
             }
             glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
-            glDrawElementsInstanced(mode, indexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
+            glDrawElementsInstanced(GL_LINES, mesh->LineIndexCount, GL_UNSIGNED_SHORT, 0, instanceCount);
         }
     }
+
+    glDepthMask(GL_TRUE);
 }
 
 void PezHandleMouse(int x, int y, int action)
