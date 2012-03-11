@@ -6,14 +6,14 @@ DEMOS=\
 	TextureWarping-UniformGrid \
 	TextureWarping-PincushionGrid \
 	TextureWarping-NonuniformGrid \
-#	TiledRendering-NonuniformGrid \
+	TiledRendering \
 	VertexWarping \
 	TessWarping \
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
-run: TextureWarping-NonuniformGrid
-	./TextureWarping-NonuniformGrid
+run: TiledRendering
+	./TiledRendering
 
 all: $(DEMOS)
 

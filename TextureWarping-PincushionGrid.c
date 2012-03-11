@@ -117,7 +117,7 @@ void PezUpdate(float seconds)
 {
     const float RadiansPerSecond = 0.5f;
     Globals.Theta += seconds * RadiansPerSecond;
-    //Globals.Theta = Pi / 4;
+    Globals.Theta = Pi / 4;
 }
 
 void PezRender()

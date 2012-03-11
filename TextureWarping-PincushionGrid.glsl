@@ -36,6 +36,11 @@ uniform sampler2D Sampler;
 
 void main()
 {
+    if (vTexCoord.s < 0 || vTexCoord.s > 1 ||
+        vTexCoord.t < 0 || vTexCoord.t > 1) {
+        FragColor = vec4(0, 0, 0, 1);
+        return;
+    }
     FragColor = texture(Sampler, vTexCoord);
 }
 
