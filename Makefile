@@ -2,17 +2,18 @@ CC=gcc
 CFLAGS=-std=c99 -Wall -c -Wc++-compat -O3
 LIBS=-lX11 -lGL -lpng
 DEMOS=\
-	Cylinders \
-	TextureWarping \
-	BetterGrid \
+	OriginalScene \
+	TextureWarping-UniformGrid \
+	TextureWarping-PincushionGrid \
+	TextureWarping-NonuniformGrid \
+#	TiledRendering-NonuniformGrid \
 	VertexWarping \
 	TessWarping \
-	TiledRendering \
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
-run: BetterGrid
-	./BetterGrid
+run: TextureWarping-NonuniformGrid
+	./TextureWarping-NonuniformGrid
 
 all: $(DEMOS)
 

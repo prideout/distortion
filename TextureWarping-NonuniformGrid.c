@@ -117,7 +117,7 @@ void PezUpdate(float seconds)
 {
     const float RadiansPerSecond = 0.5f;
     Globals.Theta += seconds * RadiansPerSecond;
-    ///Globals.Theta = Pi / 4;
+    //Globals.Theta = Pi / 4;
 }
 
 void PezRender()
@@ -195,17 +195,15 @@ void PezRender()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(Globals.QuadProgram);
     glBindTexture(GL_TEXTURE_2D, Globals.FboTexture);
-    if (0) {
-        glBindVertexArray(Globals.QuadVao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    } else {
-        glBindVertexArray(Globals.Grid.FillVao);
-        glDrawElements(GL_TRIANGLES, Globals.Grid.FillIndexCount, GL_UNSIGNED_SHORT, 0);
+    glBindVertexArray(Globals.Grid.FillVao);
+    glDrawElements(GL_TRIANGLES, Globals.Grid.FillIndexCount, GL_UNSIGNED_SHORT, 0);
 
+    if (1) {
         glUseProgram(Globals.GridProgram);
         glBindVertexArray(Globals.Grid.LineVao);
         glDrawElements(GL_LINES, Globals.Grid.LineIndexCount, GL_UNSIGNED_SHORT, 0);
     }
+
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -452,21 +450,23 @@ static MeshPod CreateGrid(int rows, int columns)
         // chance of precision error causing an incorrect # of iterations.
         for (float s = 0; s < 1 + ds / 2; s += ds) {
             for (float t = 0; t < 1 + dt / 2; t += dt) {
+
+                float u = s*2.0 - 1.0;
+                float v = t*2.0 - 1.0;
+                u = (u*u*copysign(1.0,u) + 1.0) / 2.0;
+                v = (v*v*copysign(1.0,v) + 1.0) / 2.0;
                 
-                float x = s*2-1;
-                float y = t*2-1;
+                float x = u*2-1;
+                float y = v*2-1;
 
                 float theta  = atan2(y,x);
                 float radius = sqrt(x*x+y*y);
-
                 radius = sqrt(radius);
-
                 x = radius * cos(theta);
                 y = radius * sin(theta);
-
                 pVert->Position = (Point3){x, y, 0};
-                pVert->TexCoord.x = s;
-                pVert->TexCoord.y = t;
+                pVert->TexCoord.x = u;
+                pVert->TexCoord.y = v;
                 ++pVert;
             }
         }
