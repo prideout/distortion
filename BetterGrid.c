@@ -457,12 +457,6 @@ static MeshPod CreateGrid(int rows, int columns)
                 float theta  = atan2(y,x);
                 float radius = sqrt(x*x+y*y);
 
-                /*
-                radius = sqrt(radius);
-                x = radius * cos(theta);
-                y = radius * sin(theta);
-                */
-
                 radius = radius * radius;
                 float u = 0.5 * (1.0 + radius * cos(theta));
                 float v = 0.5 * (1.0 + radius * sin(theta));
