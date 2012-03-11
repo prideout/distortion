@@ -52,14 +52,16 @@ static GLuint CreateRenderTarget(GLuint* colorTexture);
 
 const int Slices = 24;
 const int Stacks = 8;
+const int GridRows = 20;
+const int GridCols = 36;
 
 PezConfig PezGetConfig()
 {
     PezConfig config;
     config.Title = __FILE__;
-    config.Width = 853;
-    config.Height = 480;
-    config.Multisampling = false;
+    config.Width = 853*3/2;
+    config.Height = 480*3/2;
+    config.Multisampling = true;
     config.VerticalSync = true;
     return config;
 }
@@ -94,7 +96,7 @@ void PezInitialize()
     Globals.FboHandle = CreateRenderTarget(&Globals.FboTexture);
     glUseProgram(Globals.QuadProgram);
     Globals.QuadVao = CreateQuad();
-    Globals.Grid = CreateGrid(10, 18);
+    Globals.Grid = CreateGrid(GridRows, GridCols);
 
     // Create geometry
     Globals.Cylinder = CreateCylinder();
@@ -450,7 +452,19 @@ static MeshPod CreateGrid(int rows, int columns)
         // chance of precision error causing an incorrect # of iterations.
         for (float s = 0; s < 1 + ds / 2; s += ds) {
             for (float t = 0; t < 1 + dt / 2; t += dt) {
-                pVert->Position = (Point3){s*2-1, t*2-1, 0};
+                
+                float x = s*2-1;
+                float y = t*2-1;
+
+                float theta  = atan2(y,x);
+                float radius = sqrt(x*x+y*y);
+
+                radius = sqrt(radius);
+
+                x = radius * cos(theta);
+                y = radius * sin(theta);
+
+                pVert->Position = (Point3){x, y, 0};
                 pVert->TexCoord.x = s;
                 pVert->TexCoord.y = t;
                 ++pVert;
