@@ -22,6 +22,7 @@ struct {
     MeshPod Cylinder;
     Matrix4 Projection;
     Matrix4 View;
+    float Power;
 } Globals;
 
 typedef struct {
@@ -43,8 +44,8 @@ PezConfig PezGetConfig()
 {
     PezConfig config;
     config.Title = __FILE__;
-    config.Width = 853*3/2;
-    config.Height = 480*3/2;
+    config.Width = 1920;
+    config.Height = 1080;
     config.Multisampling = false;
     config.VerticalSync = true;
     return config;
@@ -89,6 +90,7 @@ void PezUpdate(float seconds)
     const float RadiansPerSecond = 0.5f;
     Globals.Theta += seconds * RadiansPerSecond;
     //Globals.Theta = Pi / 4;
+    Globals.Power = 1.0 - 0.25 * (sin(Globals.Theta * 4.0f) + 1.0);
 }
 
 void PezRender()
@@ -144,6 +146,7 @@ void PezRender()
     glUniform4f(u("BackMaterial"), 0.5, 0.5, 0, 1);
     glUniform3fv(u("Hhat"), Instances, &Hhat[0].x);
     glUniform3fv(u("Lhat"), Instances, &Lhat[0].x);
+    glUniform1f(u("Power"), Globals.Power);
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glBindVertexArray(mesh->FillVao);
@@ -151,6 +154,7 @@ void PezRender()
 
     glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("Color"), 0, 0, 0, 1);
+    glUniform1f(u("Power"), Globals.Power);
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glDepthMask(GL_FALSE);

@@ -22,6 +22,7 @@ struct {
     MeshPod Cylinder;
     Matrix4 Projection;
     Matrix4 View;
+    float Power;
 } Globals;
 
 typedef struct {
@@ -36,8 +37,8 @@ static MeshPod CreateCylinder();
 #define a(x) glGetAttribLocation(CurrentProgram(), x)
 #define offset(x) ((const GLvoid*)x)
 
-const int Slices = 12;//24;
-const int Stacks = 4;//8;
+const int Slices = 24;
+const int Stacks = 8;
 
 PezConfig PezGetConfig()
 {
@@ -89,6 +90,7 @@ void PezUpdate(float seconds)
     const float RadiansPerSecond = 0.5f;
     Globals.Theta += seconds * RadiansPerSecond;
     //Globals.Theta = Pi / 4;
+    Globals.Power = 1.0 - 0.25 * (sin(Globals.Theta * 8.0f) + 1.0);
 }
 
 void PezRender()
@@ -135,7 +137,7 @@ void PezRender()
 
     int instanceCount = Instances;
     MeshPod* mesh = &Globals.Cylinder;
-    float TessLevel = 5.0f;
+    float TessLevel = 4.0f;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   
@@ -146,6 +148,7 @@ void PezRender()
     glUniform3fv(u("Hhat"), Instances, &Hhat[0].x);
     glUniform3fv(u("Lhat"), Instances, &Lhat[0].x);
     glUniform1f(u("TessLevel"), TessLevel);
+    glUniform1f(u("Power"), Globals.Power);
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glBindVertexArray(mesh->FillVao);
@@ -156,6 +159,7 @@ void PezRender()
     glUseProgram(Globals.SimpleProgram);
     glUniform4f(u("Color"), 0, 0, 0, 1);
     glUniform1f(u("TessLevel"), TessLevel);
+    glUniform1f(u("Power"), Globals.Power);
     glUniformMatrix4fv(u("ModelviewProjection"), Instances, 0, (float*) &MVP[0]);
 
     glDepthMask(GL_FALSE);

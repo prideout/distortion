@@ -2,6 +2,7 @@
 
 in vec4 Position;
 uniform mat4 ModelviewProjection[7];
+uniform float Power;
 
 vec4 Distort(vec4 p)
 {
@@ -12,7 +13,7 @@ vec4 Distort(vec4 p)
     float radius = length(v);
 
     // Distort:
-    radius = sqrt(radius);
+    radius = pow(radius, Power);
 
     // Convert back to Cartesian:
     v.x = radius * cos(theta);
@@ -43,6 +44,7 @@ in vec4 Position;
 out vec3 vPosition;
 out int vInstanceID;
 uniform mat4 ModelviewProjection[7];
+uniform float Power;
 
 vec4 Distort(vec4 p)
 {
@@ -53,7 +55,7 @@ vec4 Distort(vec4 p)
     float radius = length(v);
 
     // Distort:
-    radius = sqrt(radius);
+    radius = pow(radius, Power);
 
     // Convert back to Cartesian:
     v.x = radius * cos(theta);

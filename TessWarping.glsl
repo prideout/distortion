@@ -39,6 +39,7 @@ layout(isolines) in;
 in vec3 tcPosition[];
 in int tcInstanceID[];
 uniform mat4 ModelviewProjection[7];
+uniform float Power = 0.5;
 
 vec4 Distort(vec4 p)
 {
@@ -49,7 +50,7 @@ vec4 Distort(vec4 p)
     float radius = length(v);
 
     // Distort:
-    radius = sqrt(radius);
+    radius = pow(radius, Power);
 
     // Convert back to Cartesian:
     v.x = radius * cos(theta);
@@ -98,10 +99,7 @@ out vec3 tcPosition[];
 in int vInstanceID[];
 out int tcInstanceID[];
 
-out float tcRadius[];
-
 uniform float TessLevel;
-
 uniform mat4 ModelviewProjection[7];
 
 #define ID gl_InvocationID
@@ -113,7 +111,6 @@ void main()
 
     vec4 p = ModelviewProjection[vInstanceID[ID]] * vec4(vPosition[ID], 1);
     float r = length(p.xy / p.w);
-    tcRadius[ID] = r;
 
     gl_TessLevelInner[0] = gl_TessLevelOuter[0] =
     gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = TessLevel;
@@ -127,9 +124,8 @@ in vec3 tcPosition[];
 out vec3 tePosition;
 in int tcInstanceID[];
 out int teInstanceID;
-in float tcRadius[];
-out float teRadius;
 uniform mat4 ModelviewProjection[7];
+uniform float Power;
 
 vec4 Distort(vec4 p)
 {
@@ -140,7 +136,7 @@ vec4 Distort(vec4 p)
     float radius = length(v);
 
     // Distort:
-    radius = sqrt(radius);
+    radius = pow(radius, Power);
 
     // Convert back to Cartesian:
     v.x = radius * cos(theta);
@@ -156,7 +152,6 @@ void main()
     vec3 p2 = gl_TessCoord.z * tcPosition[2];
     tePosition = (p0 + p1 + p2);
     teInstanceID = tcInstanceID[0];
-    teRadius = (tcRadius[0] + tcRadius[1] * tcRadius[2]) / 3.0;
     vec4 p = ModelviewProjection[teInstanceID] * vec4(tePosition, 1);
     gl_Position = Distort(p);
 }

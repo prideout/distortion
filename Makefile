@@ -13,8 +13,8 @@ DEMOS=\
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
-run: TessWarping
-	./TessWarping
+run: VertexWarping
+	./VertexWarping
 
 all: $(DEMOS)
 
