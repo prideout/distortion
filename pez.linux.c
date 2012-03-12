@@ -1,6 +1,7 @@
 // Pez was developed by Philip Rideout and released under the MIT License.
 
 #include <GL/glx.h>
+#include <libgen.h>
 
 #include "pez.h"
 #include "bstrlib.h"
@@ -172,7 +173,17 @@ int main(int argc, char** argv)
     bdestroy(shaderPrefix);
 
     // Set up the Shader Wrangler
-    pezSwAddPath("./", ".glsl");
+    const char* currdir = dirname(argv[0]);
+    if (!currdir || !*currdir) {
+        pezSwAddPath("./", ".glsl");
+    } else if (currdir[strlen(currdir) - 1] == '/') {
+        pezSwAddPath(currdir, ".glsl");
+    } else {
+        bstring dir = bformat("%s/", currdir);
+        pezSwAddPath(bdata(dir), ".glsl");
+        bdestroy(dir);
+    }
+
     pezSwAddPath("../", ".glsl");
     char qualifiedPath[128];
     strcpy(qualifiedPath, pezResourcePath());
