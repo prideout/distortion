@@ -16,8 +16,8 @@ in vec2 vTexCoord;
 out vec4 FragColor;
 uniform sampler2D Sampler;
 
-const bool BlackBackground = false;
-const bool BlackBorder = true;
+const bool BlackBackground = true;
+const bool BlackBorder = false;
 
 void main()
 {
@@ -35,8 +35,12 @@ void main()
     float L = 1.0;
 
     if (BlackBackground) {
-        if (q.x < u) L = (q.x/u);
-        if (q.y < v) L = min(L,(q.y/v));
+        if (q.x < -u || q.y < -v) {
+            FragColor = vec4(0);
+            return;
+        }
+        if (q.x < u) L *= (q.x/u);
+        if (q.y < v) L *= (q.y/v);
     }
 
     if (BlackBorder) {
