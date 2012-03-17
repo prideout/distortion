@@ -16,24 +16,39 @@ in vec2 vTexCoord;
 out vec4 FragColor;
 uniform sampler2D Sampler;
 
+const bool BlackBackground = false;
+const bool BlackBorder = true;
+
 void main()
 {
-    vec2 tc = vTexCoord;
-
-    float theta  = atan(tc.y,tc.x);
-    float radius = length(tc);
+    vec2 p = vTexCoord;
+    float theta  = atan(p.y,p.x);
+    float radius = length(p);
     radius = radius * radius;
-    tc.x = radius * cos(theta);
-    tc.y = radius * sin(theta);
-    tc = 0.5 * (tc + 1.0);
+    p.x = radius * cos(theta);
+    p.y = radius * sin(theta);
+    vec2 tc = 0.5 * (p + 1.0);
 
-    if (tc.s < 0 || tc.s > 1 ||
-        tc.t < 0 || tc.t > 1) {
-        FragColor = vec4(0, 0, 0, 1);
-        return;
+    vec2 q = 1-abs(p);
+    float u = fwidth(q.x);
+    float v = fwidth(q.y);
+    float L = 1.0;
+
+    if (BlackBackground) {
+        if (q.x < u) L = (q.x/u);
+        if (q.y < v) L = min(L,(q.y/v));
     }
 
-    FragColor = texture(Sampler, tc);
+    if (BlackBorder) {
+        if (q.x < -u || q.y < -v) {
+            FragColor = vec4(1);
+            return;
+        }
+        if (q.x < u) L *= abs(q.x/u);
+        if (q.y < v) L *= abs(q.y/v);
+    }
+
+    FragColor = L * texture(Sampler, tc);
 }
 
 -- Simple.VS
