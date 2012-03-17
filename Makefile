@@ -4,6 +4,7 @@ LIBS=-lX11 -lGL -lpng
 DEMOS=\
 	OriginalScene \
 	TextureWarping-UniformGrid \
+	TextureWarping-Gridless \
 	TextureWarping-PincushionGrid \
 	TextureWarping-NonuniformGrid \
 	TiledRendering \
@@ -13,8 +14,8 @@ DEMOS=\
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
-run: VertexWarping
-	./VertexWarping
+run: TextureWarping-Gridless
+	./TextureWarping-Gridless
 
 all: $(DEMOS)
 
