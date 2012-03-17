@@ -17,8 +17,8 @@ out vec4 FragColor;
 uniform float BarrelPower = 2.0;
 uniform sampler2D Sampler;
 
-const vec4 BackgroundColor = vec4(1);
-const bool Border = true;
+const vec4 BackgroundColor = vec4(0.5);
+const vec4 BorderColor = vec4(0);
 
 void main()
 {
@@ -33,22 +33,22 @@ void main()
     vec2 q = 1-abs(p);
     float u = fwidth(q.x);
     float v = fwidth(q.y);
-    float L = 1.0;
 
     if (q.x < -u || q.y < -v) {
         FragColor = BackgroundColor;
         return;
     }
 
-    if (Border) {
-        if (q.x < u) L *= abs(q.x/u);
-        if (q.y < v) L *= abs(q.y/v);
-    } else  {
-        if (q.x < u) L *= q.x/u;
-        if (q.y < v) L *= q.y/v;
-    }
+    float L = 1.0;
+    if (q.x < u) L *= abs(q.x/u);
+    if (q.y < v) L *= abs(q.y/v);
 
-    FragColor = L * texture(Sampler, tc);
+    if (q.x < 0 || q.y < 0) {
+        FragColor = mix(BorderColor, BackgroundColor, L);
+    } else {
+        vec4 PixelColor = texture(Sampler, tc);
+        FragColor = mix(BorderColor, PixelColor, L);
+    }
 }
 
 -- Simple.VS

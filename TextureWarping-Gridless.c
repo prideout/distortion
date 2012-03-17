@@ -186,7 +186,9 @@ void PezRender()
     glUniform1f(u("BarrelPower"), Globals.BarrelPower);
     glBindTexture(GL_TEXTURE_2D, Globals.FboTexture);
     glBindVertexArray(Globals.QuadVao);
+    glDisable(GL_BLEND);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+    glEnable(GL_BLEND);
 
     glBindTexture(GL_TEXTURE_2D, 0);
 }
