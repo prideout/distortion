@@ -49,9 +49,9 @@ PezConfig PezGetConfig()
 {
     PezConfig config;
     config.Title = __FILE__;
-    config.Width = 853*3/2;
-    config.Height = 480*3/2;
-    config.Multisampling = true;
+    config.Width = 1920;
+    config.Height = 1080;
+    config.Multisampling = false;
     config.VerticalSync = true;
     return config;
 }
@@ -104,8 +104,8 @@ void PezInitialize()
 void PezUpdate(float seconds)
 {
     const float RadiansPerSecond = 0.5f;
-    Globals.Theta += seconds * RadiansPerSecond;
     //Globals.Theta = Pi / 4;
+    Globals.Theta += seconds * RadiansPerSecond;
     Globals.BarrelPower = 2.0 - 0.5 * (sin(Globals.Theta * 4.0f) + 1.0);
 }
 
