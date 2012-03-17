@@ -10,6 +10,26 @@ void main()
     gl_Position = vec4(Position, 1);
 }
 
+-- Quad.Simple.FS
+
+in vec2 vTexCoord;
+out vec4 FragColor;
+uniform float BarrelPower = 2.0;
+uniform sampler2D Sampler;
+
+void main()
+{
+    vec2 p = vTexCoord;
+    float theta  = atan(p.y,p.x);
+    float radius = length(p);
+    radius = pow(radius, BarrelPower);
+    p.x = radius * cos(theta);
+    p.y = radius * sin(theta);
+    vec2 tc = 0.5 * (p + 1.0);
+    FragColor = texture(Sampler, tc);
+}
+
+
 -- Quad.FS
 
 in vec2 vTexCoord;
