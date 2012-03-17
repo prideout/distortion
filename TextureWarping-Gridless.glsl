@@ -14,17 +14,18 @@ void main()
 
 in vec2 vTexCoord;
 out vec4 FragColor;
+uniform float BarrelPower = 2.0;
 uniform sampler2D Sampler;
 
-const bool BlackBackground = true;
-const bool BlackBorder = false;
+const vec4 BackgroundColor = vec4(1);
+const bool Border = true;
 
 void main()
 {
     vec2 p = vTexCoord;
     float theta  = atan(p.y,p.x);
     float radius = length(p);
-    radius = radius * radius;
+    radius = pow(radius, BarrelPower);
     p.x = radius * cos(theta);
     p.y = radius * sin(theta);
     vec2 tc = 0.5 * (p + 1.0);
@@ -34,22 +35,17 @@ void main()
     float v = fwidth(q.y);
     float L = 1.0;
 
-    if (BlackBackground) {
-        if (q.x < -u || q.y < -v) {
-            FragColor = vec4(0);
-            return;
-        }
-        if (q.x < u) L *= (q.x/u);
-        if (q.y < v) L *= (q.y/v);
+    if (q.x < -u || q.y < -v) {
+        FragColor = BackgroundColor;
+        return;
     }
 
-    if (BlackBorder) {
-        if (q.x < -u || q.y < -v) {
-            FragColor = vec4(1);
-            return;
-        }
+    if (Border) {
         if (q.x < u) L *= abs(q.x/u);
         if (q.y < v) L *= abs(q.y/v);
+    } else  {
+        if (q.x < u) L *= q.x/u;
+        if (q.y < v) L *= q.y/v;
     }
 
     FragColor = L * texture(Sampler, tc);

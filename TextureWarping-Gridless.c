@@ -30,7 +30,7 @@ struct {
     GLuint FboTexture;
     GLuint FboHandle;
     GLuint QuadVao;
-    float Power;
+    float BarrelPower;
 } Globals;
 
 static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKey);
@@ -106,6 +106,7 @@ void PezUpdate(float seconds)
     const float RadiansPerSecond = 0.5f;
     Globals.Theta += seconds * RadiansPerSecond;
     //Globals.Theta = Pi / 4;
+    Globals.BarrelPower = 2.0 - 0.5 * (sin(Globals.Theta * 4.0f) + 1.0);
 }
 
 void PezRender()
@@ -182,6 +183,7 @@ void PezRender()
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glUseProgram(Globals.QuadProgram);
+    glUniform1f(u("BarrelPower"), Globals.BarrelPower);
     glBindTexture(GL_TEXTURE_2D, Globals.FboTexture);
     glBindVertexArray(Globals.QuadVao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
