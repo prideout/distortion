@@ -193,6 +193,13 @@ void PezRender()
     glDisable(GL_DEPTH_TEST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glClearColor(1,1,1,1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.9, 0.9, 1.0, 1);
+    PezConfig cfg = PezGetConfig();
+    glViewport(2,2,cfg.Width-4,cfg.Height-4);
+
     glUseProgram(Globals.QuadProgram);
     glBindTexture(GL_TEXTURE_2D, Globals.FboTexture);
     if (0) {
@@ -207,6 +214,8 @@ void PezRender()
         glDrawElements(GL_LINES, Globals.Grid.LineIndexCount, GL_UNSIGNED_SHORT, 0);
     }
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    glViewport(0,0,cfg.Width,cfg.Height);
 }
 
 void PezHandleMouse(int x, int y, int action)
