@@ -9,7 +9,6 @@
 
 struct {
     GLuint Position;
-    GLuint TexCoord;
 } Attr;
 
 typedef struct {
@@ -33,11 +32,6 @@ struct {
     GLuint QuadVao;
     float Power;
 } Globals;
-
-typedef struct {
-    Point3 Position;
-    Vector2 TexCoord;
-} Vertex;
 
 static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKey);
 static GLuint CurrentProgram();
@@ -419,42 +413,13 @@ static GLuint CreateRenderTarget(GLuint* colorTexture)
 
 static GLuint CreateQuad()
 {
-    const PezConfig cfg = PezGetConfig();
-
-    int sourceWidth = cfg.Width;
-    int sourceHeight = -cfg.Height;
-    int destWidth = cfg.Width;
-    int destHeight = cfg.Height;
-
-    // Stretch to fit:
     float q[] = {
-        -1, -1, 0, 1,
-        +1, -1, 1, 1,
-        -1, +1, 0, 0,
-        +1, +1, 1, 0 };
+        -1, -1,
+        +1, -1,
+        -1, +1,
+        +1, +1
+    };
         
-    if (sourceHeight < 0) {
-        sourceHeight = -sourceHeight;
-        q[3] = 1-q[3];
-        q[7] = 1-q[7];
-        q[11] = 1-q[11];
-        q[15] = 1-q[15];
-    }
-
-    float sourceRatio = (float) sourceWidth / sourceHeight;
-    float destRatio = (float) destWidth  / destHeight;
-    
-    // Horizontal fit:
-    if (sourceRatio > destRatio) {
-        q[1] = q[5] = -destRatio / sourceRatio;
-        q[9] = q[13] = destRatio / sourceRatio;
-
-    // Vertical fit:    
-    } else {
-        q[0] = q[8] = -sourceRatio / destRatio;
-        q[4] = q[12] = sourceRatio / destRatio;
-    }
-
     GLuint vbo, vao;
     glUseProgram(Globals.QuadProgram);
     glGenVertexArrays(1, &vao);
@@ -462,9 +427,7 @@ static GLuint CreateQuad()
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(q), q, GL_STATIC_DRAW);
-    glVertexAttribPointer(Attr.Position, 2, GL_FLOAT, GL_FALSE, 16, 0);
-    glVertexAttribPointer(Attr.TexCoord, 2, GL_FLOAT, GL_FALSE, 16, offset(8));
+    glVertexAttribPointer(Attr.Position, 2, GL_FLOAT, GL_FALSE, 8, 0);
     glEnableVertexAttribArray(Attr.Position);
-    glEnableVertexAttribArray(Attr.TexCoord);
     return vao;
 }
