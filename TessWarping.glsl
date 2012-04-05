@@ -100,7 +100,6 @@ in int vInstanceID[];
 out int tcInstanceID[];
 
 uniform float TessLevel;
-uniform mat4 ModelviewProjection[7];
 
 #define ID gl_InvocationID
 
@@ -108,9 +107,6 @@ void main()
 {
     tcPosition[ID] = vPosition[ID];
     tcInstanceID[ID] = vInstanceID[ID];
-
-    vec4 p = ModelviewProjection[vInstanceID[ID]] * vec4(vPosition[ID], 1);
-    float r = length(p.xy / p.w);
 
     gl_TessLevelInner[0] = gl_TessLevelOuter[0] =
     gl_TessLevelOuter[1] = gl_TessLevelOuter[2] = TessLevel;

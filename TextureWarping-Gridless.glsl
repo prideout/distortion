@@ -37,7 +37,7 @@ out vec4 FragColor;
 uniform float BarrelPower = 2.0;
 uniform sampler2D Sampler;
 
-const vec4 BackgroundColor = vec4(0.5);
+const vec4 BackgroundColor = vec4(1.0);
 const vec4 BorderColor = vec4(0);
 
 void main()

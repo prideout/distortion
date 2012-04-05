@@ -49,8 +49,8 @@ PezConfig PezGetConfig()
 {
     PezConfig config;
     config.Title = __FILE__;
-    config.Width = 1920;
-    config.Height = 1080;
+    config.Width = 1920/4;
+    config.Height = 1080/4;
     config.Multisampling = false;
     config.VerticalSync = true;
     return config;
@@ -91,8 +91,8 @@ void PezInitialize()
 
     // Misc Initialization
     Globals.Theta = 0;
-    glClearColor(0.9, 0.9, 1.0, 1);
-    glLineWidth(1.5);
+    glClearColor(0.8, 0.8, 0.9, 1);
+    glLineWidth(1.0);
     glEnable(GL_LINE_SMOOTH);
     glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
     glEnable(GL_BLEND);
@@ -104,7 +104,7 @@ void PezInitialize()
 void PezUpdate(float seconds)
 {
     const float RadiansPerSecond = 0.5f;
-    //Globals.Theta = Pi / 4;
+    Globals.Theta = Pi / 4;
     Globals.Theta += seconds * RadiansPerSecond;
     Globals.BarrelPower = 2.0 - 0.5 * (sin(Globals.Theta * 4.0f) + 1.0);
 }
@@ -182,6 +182,13 @@ void PezRender()
     glDisable(GL_DEPTH_TEST);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    PezConfig cfg = PezGetConfig();
+    glViewport(6,6,cfg.Width-12,cfg.Height-12);
+    glClearColor(1,1,1,1);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.8, 0.8, 0.9, 1);
+
     glUseProgram(Globals.QuadProgram);
     glUniform1f(u("BarrelPower"), Globals.BarrelPower);
     glBindTexture(GL_TEXTURE_2D, Globals.FboTexture);
@@ -191,6 +198,7 @@ void PezRender()
     glEnable(GL_BLEND);
 
     glBindTexture(GL_TEXTURE_2D, 0);
+    glViewport(0,0,cfg.Width,cfg.Height);
 }
 
 void PezHandleMouse(int x, int y, int action)
