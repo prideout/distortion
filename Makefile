@@ -1,6 +1,14 @@
 CC=gcc
 CFLAGS=-std=c99 -Wall -c -Wc++-compat -O3
 LIBS=-lX11 -lGL -lpng
+
+OS_NAME= $(shell uname -s)
+
+ifeq ($(OS_NAME), Linux)
+        CFLAGS += -DLinux -D_GNU_SOURCE
+        LIBS += -lGLEW -lm
+endif
+
 DEMOS=\
 	OriginalScene \
 	TextureWarping-UniformGrid \

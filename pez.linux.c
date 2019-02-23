@@ -1,5 +1,15 @@
 // Pez was developed by Philip Rideout and released under the MIT License.
 
+#ifdef Linux
+#include <GL/glew.h>
+#include <GL/gl.h>
+#ifndef GL_GLEXT_PROTOTYPES
+#define GL_GLEXT_PROTOTYPES 1
+#endif
+#ifndef GL3_PROTOTYPES
+#define GL3_PROTOTYPES
+#endif
+#endif
 #include <GL/glx.h>
 #include <libgen.h>
 
@@ -11,11 +21,19 @@
 #include <stdarg.h>
 #include <signal.h>
 #include <wchar.h>
+#ifndef Linux
 #include <Xm/MwmUtil.h>
-
+#endif
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/Xmd.h>
+
+#ifdef Linux
+#include <stdlib.h>
+
+const char * env_var ="MESA_GL_VERSION_OVERRIDE=4.5";
+const char * env_var2 ="MESA_GLSL_VERSION_OVERRIDE=450";
+#endif /* Linux */
 
 typedef struct PlatformContextRec
 {
@@ -32,6 +50,10 @@ unsigned int GetMicroseconds()
 
 int main(int argc, char** argv)
 {
+#ifdef Linux
+    putenv((char *)env_var);
+    putenv((char *)env_var2);
+#endif
     int attrib[] = {
         GLX_RENDER_TYPE, GLX_RGBA_BIT,
         GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
@@ -109,16 +131,18 @@ int main(int argc, char** argv)
         &attr
     );
 
+#ifndef Linux
     int borderless = 1;
+
     if (borderless) {
         Atom mwmHintsProperty = XInternAtom(context.MainDisplay, "_MOTIF_WM_HINTS", 0);
         MwmHints hints = {0};
-        hints.flags = MWM_HINTS_DECORATIONS;
+//        hints.flags = MWM_HINTS_DECORATIONS;
         hints.decorations = 0;
         XChangeProperty(context.MainDisplay, context.MainWindow, mwmHintsProperty, mwmHintsProperty, 32,
                         PropModeReplace, (unsigned char *)&hints, PROP_MWM_HINTS_ELEMENTS);
     }
-
+#endif
     XMapWindow(context.MainDisplay, context.MainWindow);
 
     int centerWindow = 1;
@@ -138,6 +162,10 @@ int main(int argc, char** argv)
                           "Try changing PEZ_FORWARD_COMPATIBLE_GL to 0.\n");
         }
         int fbcount = 0;
+#ifdef Linux
+    glewExperimental = GL_TRUE;
+    glewInit();
+#endif
         GLXFBConfig *framebufferConfig = glXChooseFBConfig(context.MainDisplay, screenIndex, 0, &fbcount);
         if (!framebufferConfig) {
             pezFatal("Can't create a framebuffer for OpenGL 4.0.\n");
@@ -243,9 +271,12 @@ int main(int argc, char** argv)
                     XComposeStatus composeStatus;
                     char asciiCode[32];
                     KeySym keySym;
-                    int len;
-                    
-                    len = XLookupString(&event.xkey, asciiCode, sizeof(asciiCode), &keySym, &composeStatus);
+
+                    int len = XLookupString(&event.xkey, asciiCode, sizeof(asciiCode), &keySym, &composeStatus);
+
+                    if (len == 0)
+                        fprintf( stderr, "Buffer empty");
+
                     switch (asciiCode[0]) {
                         case 'x': case 'X': case 'q': case 'Q':
                         case 0x1b:
