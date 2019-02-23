@@ -57,7 +57,8 @@ static void __pez__FreeList(pezList* pNode)
 static bstring __pez__LoadEffectContents(pezContext* gc, bstring effectName)
 {
     FILE* fp = 0;
-    bstring effectFile, effectContents;
+    bstring effectFile = NULL;
+    bstring effectContents = NULL;
     pezList* pPathList = gc->PathList;
     
     while (pPathList)
@@ -854,7 +855,12 @@ PezPixels pezLoadPixels(const char* filename)
     fseek(file, 0, SEEK_SET);
 
     compressed = (unsigned char*) malloc(compressedSize);
-    fread(compressed, 1, compressedSize, file);
+
+    int err = fread(compressed, 1, compressedSize, file);
+
+    if (err != EOF && err == 0)
+        fprintf(stderr, "pb occured with fread() ");
+
     fclose(file);
 
     decompressedSize = 0;
@@ -917,7 +923,11 @@ PezVerts pezLoadVerts(const char* filename)
     fseek(file, 0, SEEK_SET);
 
     unsigned char* compressed = (unsigned char*) malloc(compressedSize);
-    fread(compressed, 1, compressedSize, file);
+    int anErr = fread(compressed, 1, compressedSize, file);
+
+    if (anErr != EOF && anErr == 0)
+        fprintf(stderr, "pb occured with fread() ");
+
     fclose(file);
 
     unsigned int decompressedSize = 0;
