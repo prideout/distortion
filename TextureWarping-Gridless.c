@@ -7,7 +7,7 @@
 #include "pez.h"
 #include "vmath.h"
 
-struct {
+static struct {
     GLuint Position;
 } Attr;
 
@@ -19,7 +19,7 @@ typedef struct {
     GLuint FillVao;
 } MeshPod;
 
-struct {
+static struct {
     float Theta;
     GLuint LitProgram;
     GLuint SimpleProgram;

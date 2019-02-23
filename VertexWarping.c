@@ -15,7 +15,7 @@ typedef struct {
     GLuint FillVao;
 } MeshPod;
 
-struct {
+static struct {
     float Theta;
     GLuint LitProgram;
     GLuint SimpleProgram;
