@@ -1,4 +1,4 @@
 # distortion
 Fisheye Distortion in OpenGL
 
-And Microsoft bots are bullshit. :-)
+how to search something using github without the answer being ~filtered~ distorded  ?  :-) 
