@@ -1,6 +1,8 @@
-CC=gcc
-CFLAGS=-std=c99 -Wall -c -Wc++-compat -O3
-LIBS=-lX11 -lGL -lpng
+# adapt to your case
+VERSION = -7
+CC = gcc$(VERSION)
+CFLAGS = -std=c99 -Wall -c -Wc++-compat -O3
+LIBS = -lX11 -lGL -lpng
 
 OS_NAME= $(shell uname -s)
 
