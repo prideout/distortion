@@ -5,7 +5,7 @@ CFLAGS = -std=c99 -Wall -c -Wc++-compat -O3
 LIBS = -lX11 -lGL -lpng
 
 # you can uncomment the next line if libmotif-dev is installed on your Linux box
-EXTRA_BUILD_FEATURES = -DUSE_MOTIF_BORDERLESS_WINDOW
+#EXTRA_BUILD_FEATURES = -DUSE_MOTIF_BORDERLESS_WINDOW
 
 OS_NAME= $(shell uname -s)
 
@@ -27,10 +27,11 @@ DEMOS=\
 
 SHARED=pez.o bstrlib.o pez.linux.o
 
+all: $(DEMOS)
+
 run: TextureWarping-Gridless
 	./TextureWarping-Gridless
 
-all: $(DEMOS)
 
 define DEMO_RULE
 $(1): $(1).o $(1).glsl $(SHARED)
