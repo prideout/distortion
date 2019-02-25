@@ -21,7 +21,11 @@
 #include <stdarg.h>
 #include <signal.h>
 #include <wchar.h>
-#ifndef Linux
+
+// TODO : USE_MOTIF_BORDERLESS_WINDOW is currently defined at build time.
+// Next step : use an environment variable and pass it as argv[1] instead ?
+
+#ifdef USE_MOTIF_BORDERLESS_WINDOW
 #include <Xm/MwmUtil.h>
 #endif
 #include <X11/Xlib.h>
@@ -30,7 +34,6 @@
 
 #ifdef Linux
 #include <stdlib.h>
-
 const char * env_var ="MESA_GL_VERSION_OVERRIDE=4.5";
 const char * env_var2 ="MESA_GLSL_VERSION_OVERRIDE=450";
 #endif /* Linux */
@@ -131,13 +134,13 @@ int main(int argc, char** argv)
         &attr
     );
 
-#ifndef Linux
+#ifdef USE_MOTIF_BORDERLESS_WINDOW
     int borderless = 1;
 
     if (borderless) {
         Atom mwmHintsProperty = XInternAtom(context.MainDisplay, "_MOTIF_WM_HINTS", 0);
         MwmHints hints = {0};
-//        hints.flags = MWM_HINTS_DECORATIONS;
+        hints.flags = MWM_HINTS_DECORATIONS;
         hints.decorations = 0;
         XChangeProperty(context.MainDisplay, context.MainWindow, mwmHintsProperty, mwmHintsProperty, 32,
                         PropModeReplace, (unsigned char *)&hints, PROP_MWM_HINTS_ELEMENTS);

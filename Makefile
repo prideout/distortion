@@ -4,10 +4,13 @@ CC = gcc$(VERSION)
 CFLAGS = -std=c99 -Wall -c -Wc++-compat -O3
 LIBS = -lX11 -lGL -lpng
 
+# you can uncomment the next line if libmotif-dev is installed on your Linux box
+EXTRA_BUILD_FEATURES = -DUSE_MOTIF_BORDERLESS_WINDOW
+
 OS_NAME= $(shell uname -s)
 
 ifeq ($(OS_NAME), Linux)
-        CFLAGS += -DLinux -D_GNU_SOURCE
+        CFLAGS += -DLinux -D_GNU_SOURCE $(EXTRA_BUILD_FEATURES)
         LIBS += -lGLEW -lm
 endif
 
