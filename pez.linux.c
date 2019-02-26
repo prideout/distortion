@@ -177,6 +177,8 @@ int main(int argc, char** argv)
                 GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
                 GLX_CONTEXT_MINOR_VERSION_ARB, 0,
                 GLX_CONTEXT_FLAGS_ARB, GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+                // WIP source : https://www.khronos.org/registry/OpenGL/extensions/ARB/GLX_ARB_create_context.txt
+                //GLX_CONTEXT_PROFILE_MASK_ARB, GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
                 0
             }; 
             glcontext = glXCreateContextAttribs(context.MainDisplay, framebufferConfig[0], NULL, True, attribs);
