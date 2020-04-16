@@ -6,23 +6,7 @@
 #include <stdbool.h>
 #include "pez.h"
 #include "vmath.h"
-
-typedef struct {
-    int VertexCount;
-    int LineIndexCount;
-    int FillIndexCount;
-    GLuint LineVao;
-    GLuint FillVao;
-} MeshPod;
-
-struct {
-    float Theta;
-    GLuint LitProgram;
-    GLuint SimpleProgram;
-    MeshPod Cylinder;
-    Matrix4 Projection;
-    Matrix4 View;
-} Globals;
+#include "common.h"
 
 typedef struct {
     Vector3 Position;

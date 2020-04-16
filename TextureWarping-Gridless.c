@@ -6,32 +6,11 @@
 #include <stdbool.h>
 #include "pez.h"
 #include "vmath.h"
+#include "common.h"
 
-struct {
+static struct {
     GLuint Position;
 } Attr;
-
-typedef struct {
-    int VertexCount;
-    int LineIndexCount;
-    int FillIndexCount;
-    GLuint LineVao;
-    GLuint FillVao;
-} MeshPod;
-
-struct {
-    float Theta;
-    GLuint LitProgram;
-    GLuint SimpleProgram;
-    GLuint QuadProgram;
-    MeshPod Cylinder;
-    Matrix4 Projection;
-    Matrix4 View;
-    GLuint FboTexture;
-    GLuint FboHandle;
-    GLuint QuadVao;
-    float BarrelPower;
-} Globals;
 
 static GLuint LoadProgram(const char* vsKey, const char* gsKey, const char* fsKey);
 static GLuint CurrentProgram();
